@@ -5,11 +5,12 @@ import { Title } from '@angular/platform-browser';
 import { FormsService } from './services/forms.service';
 import { I18nService } from './services/i18n.service';
 import { environment } from '../environments/environment';
+import { Form, Question, QuestionType, OPTION_QUESTION_TYPES } from './models/form-dsl';
 
 type AppState = 'idle' | 'validating' | 'creating' | 'success' | 'error';
-type WizardStep = 'step1' | 'step2' | 'step3' | 'step4' | 'done';
+type WizardStep = 'step1' | 'step2' | 'step3' | 'step3b' | 'step4' | 'done';
 
-const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step4', 'done'];
+const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 'done'];
 
 @Component({
   selector: 'app-main',
@@ -38,8 +39,13 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step4', 'done'];
         <div class="wp-label">{{ i18n.t('wpLabel3') }}</div>
       </div>
       <div class="wp-line" [class.done]="isStepDone('step3')"></div>
+      <div class="wp-step" [class.active]="currentStep === 'step3b'" [class.done]="isStepDone('step3b')">
+        <div class="wp-dot">{{ isStepDone('step3b') ? '✓' : '4' }}</div>
+        <div class="wp-label">{{ i18n.t('wpLabel3b') }}</div>
+      </div>
+      <div class="wp-line" [class.done]="isStepDone('step3b')"></div>
       <div class="wp-step" [class.active]="currentStep === 'step4'" [class.done]="isStepDone('step4')">
-        <div class="wp-dot">{{ isStepDone('step4') ? '✓' : '4' }}</div>
+        <div class="wp-dot">{{ isStepDone('step4') ? '✓' : '5' }}</div>
         <div class="wp-label">{{ i18n.t('wpLabel4') }}</div>
       </div>
     </nav>
@@ -138,6 +144,97 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step4', 'done'];
         </button>
         <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="!validationOk">
           {{ i18n.t('wizardStep3Cta') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════ STEP 3B (edit/verify) ═══════════════ -->
+    <div class="step-card" *ngIf="currentStep === 'step3b' && editableForm">
+      <p class="step-badge">{{ i18n.t('wizardBadge3b') }}</p>
+      <h2>{{ i18n.t('wizardStep3bTitle') }}</h2>
+      <p class="step-desc">{{ i18n.t('wizardStep3bDesc') }}</p>
+
+      <div class="edit-page" *ngFor="let page of editableForm.pages; let pi = index">
+        <h3 class="edit-page-title" *ngIf="editableForm.pages.length > 1">{{ page.title }}</h3>
+
+        <div class="edit-question" *ngFor="let q of page.questions; let qi = index">
+          <div class="edit-question-head">
+            <span class="edit-question-num">{{ questionNumber(pi, qi) }}</span>
+            <div class="edit-question-actions">
+              <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, -1)" [disabled]="qi === 0" [attr.aria-label]="i18n.t('wizardStep3bMoveUp')">↑</button>
+              <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, 1)" [disabled]="qi === page.questions.length - 1" [attr.aria-label]="i18n.t('wizardStep3bMoveDown')">↓</button>
+              <button type="button" class="icon-btn icon-btn-danger" (click)="removeQuestion(pi, qi)" [attr.aria-label]="i18n.t('wizardStep3bRemoveQuestion')">✕</button>
+            </div>
+          </div>
+
+          <input
+            type="text"
+            class="edit-input"
+            [(ngModel)]="q.title"
+            [name]="'qtitle-' + pi + '-' + qi"
+            [placeholder]="i18n.t('wizardStep3bQuestionTitle')"
+          />
+
+          <div class="edit-row">
+            <select class="edit-select" [(ngModel)]="q.type" [name]="'qtype-' + pi + '-' + qi" (ngModelChange)="onTypeChange(q)">
+              <option value="text">{{ i18n.t('qType_text') }}</option>
+              <option value="short_answer">{{ i18n.t('qType_short_answer') }}</option>
+              <option value="true_false">{{ i18n.t('qType_true_false') }}</option>
+              <option value="multiple_choice">{{ i18n.t('qType_multiple_choice') }}</option>
+              <option value="checkbox">{{ i18n.t('qType_checkbox') }}</option>
+              <option value="dropdown">{{ i18n.t('qType_dropdown') }}</option>
+            </select>
+            <label class="edit-checkbox">
+              <input type="checkbox" [(ngModel)]="q.required" [name]="'qreq-' + pi + '-' + qi" />
+              {{ i18n.t('wizardStep3bRequired') }}
+            </label>
+          </div>
+
+          <div class="edit-options" *ngIf="hasOptions(q)">
+            <div class="edit-option-row" *ngFor="let opt of q.options; let oi = index">
+              <input
+                type="text"
+                class="edit-input"
+                [ngModel]="opt"
+                (ngModelChange)="setOption(q, oi, $event)"
+                [name]="'qopt-' + pi + '-' + qi + '-' + oi"
+                [placeholder]="i18n.t('wizardStep3bOptionPlaceholder') + ' ' + (oi + 1)"
+              />
+              <button type="button" class="icon-btn icon-btn-danger" (click)="removeOption(q, oi)" [disabled]="(q.options?.length ?? 0) <= 1" [attr.aria-label]="i18n.t('wizardStep3bRemoveOption')">✕</button>
+            </div>
+            <button type="button" class="edit-add-link" (click)="addOption(q)">+ {{ i18n.t('wizardStep3bAddOption') }}</button>
+          </div>
+
+          <div class="edit-row" *ngIf="editableForm.mode === 'quiz' && hasOptions(q)">
+            <input type="text" class="edit-input" [(ngModel)]="q.correctAnswer" [name]="'qcorrect-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bCorrectAnswer')" />
+            <input type="number" class="edit-input edit-input-score" [(ngModel)]="q.score" [name]="'qscore-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bScore')" min="0" />
+          </div>
+
+          <div class="edit-media">
+            <ng-container *ngIf="q.media; else noMedia">
+              <input type="url" class="edit-input" [(ngModel)]="q.media.url" [name]="'qmedia-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bImageUrl')" />
+              <button type="button" class="edit-add-link edit-remove-link" (click)="removeImage(q)">{{ i18n.t('wizardStep3bRemoveImage') }}</button>
+            </ng-container>
+            <ng-template #noMedia>
+              <button type="button" class="edit-add-link" (click)="addImage(q)">+ {{ i18n.t('wizardStep3bAddImage') }}</button>
+            </ng-template>
+          </div>
+        </div>
+
+        <button type="button" class="edit-add-question-btn" (click)="addQuestion(pi)">+ {{ i18n.t('wizardStep3bAddQuestion') }}</button>
+      </div>
+
+      <div class="result result-error" *ngIf="editErrors().length > 0">
+        <strong>{{ i18n.t('wizardStep3bValidationHint') }}</strong>
+        <ul>
+          <li *ngFor="let e of editErrors()">{{ e }}</li>
+        </ul>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
+        <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="editErrors().length > 0">
+          {{ i18n.t('wizardStep3bCta') }}
         </button>
       </div>
     </div>
@@ -727,6 +824,163 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step4', 'done'];
       margin: .25rem auto 0;
     }
 
+    /* ── Edit step ── */
+    .edit-page + .edit-page {
+      margin-top: 1.1rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .edit-page-title {
+      font-size: .95rem;
+      color: var(--text-primary);
+      margin: 0 0 .6rem;
+    }
+
+    .edit-question {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .75rem .85rem;
+      margin-bottom: .65rem;
+    }
+
+    .edit-question-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .5rem;
+    }
+
+    .edit-question-num {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .edit-question-actions {
+      display: flex;
+      gap: .3rem;
+    }
+
+    .icon-btn {
+      padding: .25rem .5rem;
+      font-size: .8rem;
+      line-height: 1;
+    }
+
+    .icon-btn-danger:hover:not([disabled]) {
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    .edit-input {
+      width: 100%;
+      font-size: .87rem;
+      background: var(--surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .5rem .7rem;
+      outline: none;
+      margin-bottom: .45rem;
+      box-sizing: border-box;
+    }
+
+    .edit-input:focus { border-color: var(--accent); }
+
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-bottom: .45rem;
+    }
+
+    .edit-row .edit-input {
+      flex: 1;
+      margin-bottom: 0;
+      min-width: 120px;
+    }
+
+    .edit-input-score {
+      max-width: 100px;
+      flex: 0 0 auto;
+    }
+
+    .edit-select {
+      font-size: .85rem;
+      background: var(--surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .5rem .6rem;
+    }
+
+    .edit-checkbox {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .edit-options {
+      margin-bottom: .45rem;
+    }
+
+    .edit-option-row {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    .edit-option-row .edit-input {
+      flex: 1;
+    }
+
+    .edit-add-link {
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: .3rem .1rem;
+    }
+
+    .edit-add-link:hover:not([disabled]) {
+      color: var(--accent-hover);
+      border-color: transparent;
+    }
+
+    .edit-remove-link {
+      color: var(--error);
+    }
+
+    .edit-media {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .edit-media .edit-input {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .edit-add-question-btn {
+      width: 100%;
+      border-style: dashed;
+      color: var(--text-secondary);
+      font-size: .85rem;
+    }
+
+    .edit-add-question-btn:hover:not([disabled]) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     /* ── Responsive ── */
     @media (max-width: 480px) {
       .step-card { padding: 1.25rem; }
@@ -746,6 +1000,7 @@ export class AppComponent implements OnInit {
   promptCopied = false;
   currentStep: WizardStep = 'step1';
   helpExpanded = false;
+  editableForm: Form | null = null;
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -821,6 +1076,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
         this.state = 'idle';
         if (res.valid) {
           this.validationOk = true;
+          this.editableForm = payload as Form;
         } else {
           this.errors = res.errors;
         }
@@ -834,12 +1090,12 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
 
   create(): void {
     this.reset();
-    const payload = this.parseDsl();
+    const payload = this.editableForm ?? this.parseDsl();
     if (!payload) return;
 
     const token = sessionStorage.getItem('access_token');
     if (!token) {
-      sessionStorage.setItem('pending_dsl', this.dslJson);
+      sessionStorage.setItem('pending_dsl', JSON.stringify(payload));
       window.location.href = `${environment.apiBaseUrl}/auth/google/login`;
       return;
     }
@@ -872,8 +1128,8 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
 
   goNext(): void {
     const idx = STEP_ORDER.indexOf(this.currentStep);
-    // step1(0)→step2(1)→step3(2): navigable; step4(3) reached only via create()
-    if (idx >= 0 && idx < 3) {
+    // step1(0)→step2(1)→step3(2)→step3b(3)→step4(4): navigable; 'done' reached only via create()
+    if (idx >= 0 && idx < STEP_ORDER.indexOf('done') - 1) {
       this.currentStep = STEP_ORDER[idx + 1];
     }
   }
@@ -889,6 +1145,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     this.currentStep = 'step1';
     this.dslJson = '';
     this.helpExpanded = false;
+    this.editableForm = null;
     this.reset();
   }
 
@@ -898,5 +1155,114 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     this.formUrl = '';
     this.serverError = '';
     this.state = 'idle';
+  }
+
+  // ── Edit step (step3b) ──────────────────────────────────────
+
+  questionNumber(pageIndex: number, questionIndex: number): number {
+    if (!this.editableForm) return questionIndex + 1;
+    let n = questionIndex;
+    for (let i = 0; i < pageIndex; i++) {
+      n += this.editableForm.pages[i].questions.length;
+    }
+    return n + 1;
+  }
+
+  hasOptions(q: Question): boolean {
+    return OPTION_QUESTION_TYPES.includes(q.type);
+  }
+
+  onTypeChange(q: Question): void {
+    if (this.hasOptions(q)) {
+      if (!q.options || q.options.length === 0) q.options = [''];
+    } else {
+      delete q.options;
+      delete q.correctAnswer;
+    }
+  }
+
+  setOption(q: Question, index: number, value: string): void {
+    if (q.options) q.options[index] = value;
+  }
+
+  addOption(q: Question): void {
+    q.options = q.options ?? [];
+    q.options.push('');
+  }
+
+  removeOption(q: Question, index: number): void {
+    if (q.options && q.options.length > 1) {
+      q.options.splice(index, 1);
+    }
+  }
+
+  addQuestion(pageIndex: number): void {
+    if (!this.editableForm) return;
+    const newType: QuestionType = 'text';
+    this.editableForm.pages[pageIndex].questions.push({
+      id: this.generateId(),
+      type: newType,
+      title: '',
+      required: false,
+    });
+  }
+
+  removeQuestion(pageIndex: number, questionIndex: number): void {
+    if (!this.editableForm) return;
+    this.editableForm.pages[pageIndex].questions.splice(questionIndex, 1);
+  }
+
+  moveQuestion(pageIndex: number, questionIndex: number, direction: -1 | 1): void {
+    if (!this.editableForm) return;
+    const questions = this.editableForm.pages[pageIndex].questions;
+    const target = questionIndex + direction;
+    if (target < 0 || target >= questions.length) return;
+    [questions[questionIndex], questions[target]] = [questions[target], questions[questionIndex]];
+  }
+
+  addImage(q: Question): void {
+    q.media = { type: 'image', url: '' };
+  }
+
+  removeImage(q: Question): void {
+    delete q.media;
+  }
+
+  editErrors(): string[] {
+    if (!this.editableForm) return [];
+    const errors: string[] = [];
+    let hasAnyQuestion = false;
+    let n = 0;
+
+    for (const page of this.editableForm.pages) {
+      for (const q of page.questions) {
+        hasAnyQuestion = true;
+        n++;
+        const label = `${this.i18n.t('wizardStep3bErrQuestionLabel')} ${n}`;
+
+        if (!q.title.trim()) {
+          errors.push(`${label}: ${this.i18n.t('wizardStep3bErrEmptyTitle')}`);
+        }
+        if (this.hasOptions(q) && (!q.options || q.options.length === 0 || q.options.some((o) => !o.trim()))) {
+          errors.push(`${label}: ${this.i18n.t('wizardStep3bErrOptions')}`);
+        }
+        if (q.media && !/^https:\/\//i.test(q.media.url.trim())) {
+          errors.push(`${label}: ${this.i18n.t('wizardStep3bErrMediaUrl')}`);
+        }
+      }
+    }
+
+    if (!hasAnyQuestion) {
+      errors.push(this.i18n.t('wizardStep3bErrNoQuestions'));
+    }
+
+    return errors;
+  }
+
+  private generateId(): string {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return `q-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 }
