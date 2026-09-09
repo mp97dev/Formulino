@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsc -p tsconfig.build.json && concurrently -k -n tsc,node \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch --enable-source-maps dist/main.js\"",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "test": "NODE_OPTIONS='--max-old-space-size=1024' jest --config ./jest.config.cjs --forceExit",
@@ -25,6 +25,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.11",
-    "tsx": "^4.19.3"
+    "concurrently": "^9.1.2"
   }
 }
