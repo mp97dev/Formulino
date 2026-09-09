@@ -52,9 +52,12 @@ function mapQuestion(
   const choiceType = buildChoiceType(question.type);
 
   if (choiceType) {
-    const options = question.type === 'true_false'
-      ? ['True', 'False']
-      : (question.options ?? []);
+    const options =
+      question.options && question.options.length > 0
+        ? question.options
+        : question.type === 'true_false'
+          ? ['True', 'False']
+          : [];
 
     const mappedOptions = options.map((opt) => ({ value: opt }));
 

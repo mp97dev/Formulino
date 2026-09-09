@@ -73,6 +73,35 @@ describe('mapDslToGoogleRequests', () => {
     expect(opts.map((o) => o.value)).toEqual(['True', 'False']);
   });
 
+  it('uses localized options for true_false when provided instead of defaulting to English', () => {
+    const form: Form = {
+      ...baseForm,
+      mode: 'quiz',
+      pages: [
+        {
+          id: 'p1',
+          title: 'Page 1',
+          questions: [
+            {
+              id: 'q1',
+              type: 'true_false',
+              title: 'Una pianta è un essere vivente.',
+              required: true,
+              options: ['Vero', 'Falso'],
+              correctAnswer: 'Vero',
+              score: 1,
+            },
+          ],
+        },
+      ],
+    };
+    const requests = mapDslToGoogleRequests(form);
+    const question = requests[0].createItem?.item.questionItem?.question;
+    const opts = question?.choiceQuestion?.options ?? [];
+    expect(opts.map((o) => o.value)).toEqual(['Vero', 'Falso']);
+    expect(question?.grading?.correctAnswers.answers).toEqual([{ value: 'Vero' }]);
+  });
+
   it('adds grading info in quiz mode', () => {
     const form: Form = {
       ...baseForm,
