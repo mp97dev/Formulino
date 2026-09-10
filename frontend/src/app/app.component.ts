@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
 import { FormsService } from './services/forms.service';
-import { I18nService } from './services/i18n.service';
+import { I18nService, StringKey } from './services/i18n.service';
 import { environment } from '../environments/environment';
 import { Form, Question, QuestionType, OPTION_QUESTION_TYPES } from './models/form-dsl';
 
@@ -18,7 +18,8 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
   imports: [CommonModule, FormsModule],
   template: `
     <section class="hero">
-      <h1>{{ i18n.t('appTagline') }}</h1>
+      <h1 class="hero-title">{{ i18n.t('appName') }}</h1>
+      <p class="hero-tagline">{{ i18n.t('appTagline') }}</p>
       <p class="hero-desc">{{ i18n.t('appDesc') }}</p>
     </section>
 
@@ -81,6 +82,15 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
         {{ i18n.t('wizardStep1Cta') }}
       </button>
     </div>
+
+    <!-- ═══════════════ FAQ (step 1 only) ═══════════════ -->
+    <section class="faq" *ngIf="currentStep === 'step1'">
+      <h2 class="faq-title">{{ i18n.t('faqTitle') }}</h2>
+      <details class="faq-item" *ngFor="let faq of faqItems">
+        <summary>{{ i18n.t(faq.q) }}</summary>
+        <p>{{ i18n.t(faq.a) }}</p>
+      </details>
+    </section>
 
     <!-- ═══════════════ STEP 2 ═══════════════ -->
     <div class="step-card" *ngIf="currentStep === 'step2'">
@@ -319,23 +329,32 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
     /* ── Hero ── */
     .hero {
       text-align: center;
-      padding: .6rem 0 0;
+      padding: 1.5rem 0 .25rem;
     }
 
-    .hero h1 {
-      font-size: clamp(.95rem, 2.2vw, 1.2rem);
-      color: var(--text-secondary);
-      margin: 0;
+    .hero-title {
+      font-size: clamp(1.9rem, 6vw, 2.6rem);
+      color: var(--text-primary);
+      margin: 0 0 .3rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+    }
+
+    .hero-tagline {
+      font-size: clamp(1rem, 2.6vw, 1.2rem);
+      color: var(--text-primary);
+      margin: 0 0 .5rem;
       font-weight: 600;
-      letter-spacing: -.01em;
-      line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.35;
     }
 
     .hero-desc {
-      display: none;
+      font-size: .92rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0 auto;
+      max-width: 46ch;
     }
 
     /* ── Step card ── */
@@ -981,6 +1000,55 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       color: var(--accent);
     }
 
+    /* ── FAQ ── */
+    .faq {
+      margin-top: 2rem;
+    }
+
+    .faq-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 .6rem;
+    }
+
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      padding: .6rem .85rem;
+      margin-bottom: .45rem;
+    }
+
+    .faq-item summary {
+      cursor: pointer;
+      font-size: .87rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      list-style: none;
+    }
+
+    .faq-item summary::-webkit-details-marker { display: none; }
+
+    .faq-item summary::before {
+      content: '▸';
+      color: var(--accent);
+      margin-right: .5rem;
+      display: inline-block;
+      transition: transform 150ms;
+    }
+
+    .faq-item[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .faq-item p {
+      margin: .5rem 0 .15rem;
+      font-size: .85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
     /* ── Responsive ── */
     @media (max-width: 480px) {
       .step-card { padding: 1.25rem; }
@@ -1001,6 +1069,16 @@ export class AppComponent implements OnInit {
   currentStep: WizardStep = 'step1';
   helpExpanded = false;
   editableForm: Form | null = null;
+
+  // t() is typed against literal string keys, so a computed 'faqQ' + n would not
+  // typecheck — use an explicit array of key pairs instead.
+  readonly faqItems: { q: StringKey; a: StringKey }[] = [
+    { q: 'faqQ1', a: 'faqA1' },
+    { q: 'faqQ2', a: 'faqA2' },
+    { q: 'faqQ3', a: 'faqA3' },
+    { q: 'faqQ4', a: 'faqA4' },
+    { q: 'faqQ5', a: 'faqA5' },
+  ];
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1044,9 +1122,17 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     this.title.setTitle('Formulino – Crea Google Form con il tuo assistente AI');
     const pending = sessionStorage.getItem('pending_dsl');
     if (pending) {
+      const pendingStep = sessionStorage.getItem('pending_step') as WizardStep | null;
       this.dslJson = pending;
       sessionStorage.removeItem('pending_dsl');
-      this.currentStep = 'step3';
+      sessionStorage.removeItem('pending_step');
+      // Restore where the user actually was. Fall back to step3 for payloads
+      // stored by an older build that did not write pending_step, or for a
+      // tampered value (pending_step is attacker-controllable via devtools).
+      this.currentStep =
+        pendingStep && STEP_ORDER.includes(pendingStep) && pendingStep !== 'done'
+          ? pendingStep
+          : 'step3';
       this.validate();
     }
   }
@@ -1096,6 +1182,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     const token = sessionStorage.getItem('access_token');
     if (!token) {
       sessionStorage.setItem('pending_dsl', JSON.stringify(payload));
+      sessionStorage.setItem('pending_step', this.currentStep);
       window.location.href = `${environment.apiBaseUrl}/auth/google/login`;
       return;
     }
@@ -1109,6 +1196,24 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
       },
       error: (err) => {
         this.state = 'error';
+        // A Google access token lives ~1h and is never refreshed. Once expired,
+        // the stored token would be replayed forever — drop it so the next click
+        // starts a fresh sign-in instead of failing identically.
+        // A missing/malformed Authorization header surfaces as 401 directly from
+        // forms.controller.ts. An expired/invalid token that DOES reach Google is
+        // never validated locally — it is forwarded straight to the Forms API,
+        // whose rejection is caught by AllExceptionsFilter's isGoogleApiError()
+        // branch and remapped to 502 with a "Google API error: …" message. Treat
+        // both shapes as an expired session; a 403 is a scope/consent problem,
+        // not expiry, so it must NOT clear the token.
+        const message: string = err?.error?.message ?? '';
+        const looksLikeExpiredGoogleAuth =
+          err?.status === 502 && /invalid.*(credential|authentication|token)/i.test(message);
+        if (err?.status === 401 || looksLikeExpiredGoogleAuth) {
+          sessionStorage.removeItem('access_token');
+          this.serverError = this.i18n.t('sessionExpired');
+          return;
+        }
         this.serverError = err?.error?.message ?? err?.message ?? 'Form creation failed';
       },
     });

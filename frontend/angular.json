@@ -53,6 +53,7 @@
                 }
               ],
               "optimization": true,
+              "outputHashing": "all",
               "extractLicenses": true,
               "sourceMap": false
             },

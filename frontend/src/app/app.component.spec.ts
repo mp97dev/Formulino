@@ -177,4 +177,74 @@ describe('AppComponent', () => {
     expect(comp.dslJson).toBe('');
     expect(svc.validate).not.toHaveBeenCalled();
   });
+
+  it('restores the wizard on the persisted step after OAuth', () => {
+    mockSessionStorage.setItem('pending_dsl', '{"title":"restored"}');
+    mockSessionStorage.setItem('pending_step', 'step4');
+    svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+    comp.ngOnInit();
+    expect(comp.currentStep).toBe('step4');
+    expect(mockSessionStorage.getItem('pending_dsl')).toBeNull();
+    expect(mockSessionStorage.getItem('pending_step')).toBeNull();
+  });
+
+  it('falls back to step3 when pending_step is absent', () => {
+    mockSessionStorage.setItem('pending_dsl', '{"title":"restored"}');
+    svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+    comp.ngOnInit();
+    expect(comp.currentStep).toBe('step3');
+  });
+
+  it('falls back to step3 when pending_step is a tampered/unknown value', () => {
+    mockSessionStorage.setItem('pending_dsl', '{"title":"restored"}');
+    mockSessionStorage.setItem('pending_step', 'bogus');
+    svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+    comp.ngOnInit();
+    expect(comp.currentStep).toBe('step3');
+  });
+
+  it('falls back to step3 when pending_step is "done"', () => {
+    mockSessionStorage.setItem('pending_dsl', '{"title":"restored"}');
+    mockSessionStorage.setItem('pending_step', 'done');
+    svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+    comp.ngOnInit();
+    expect(comp.currentStep).toBe('step3');
+  });
+
+  it('create: persists the current step alongside pending_dsl when not authenticated', () => {
+    comp.dslJson = '{"title":"T"}';
+    comp.currentStep = 'step4';
+    mockSessionStorage.removeItem('access_token');
+    comp.create();
+    expect(mockSessionStorage.getItem('pending_step')).toBe('step4');
+  });
+
+  it('clears the stored token on a 401 from create', () => {
+    comp.dslJson = '{"title":"T"}';
+    mockSessionStorage.setItem('access_token', 'tok');
+    svc.createForm.mockReturnValue(throwError(() => ({ status: 401 })));
+    comp.create();
+    expect(mockSessionStorage.getItem('access_token')).toBeNull();
+    expect(comp.serverError).toBe('sessionExpired');
+  });
+
+  it('clears the stored token on a 502 that looks like an expired Google credential', () => {
+    comp.dslJson = '{"title":"T"}';
+    mockSessionStorage.setItem('access_token', 'tok');
+    svc.createForm.mockReturnValue(
+      throwError(() => ({ status: 502, error: { message: 'Google API error: Invalid Credentials' } })),
+    );
+    comp.create();
+    expect(mockSessionStorage.getItem('access_token')).toBeNull();
+    expect(comp.serverError).toBe('sessionExpired');
+  });
+
+  it('does NOT clear the stored token on a 403', () => {
+    comp.dslJson = '{"title":"T"}';
+    mockSessionStorage.setItem('access_token', 'tok');
+    svc.createForm.mockReturnValue(throwError(() => ({ status: 403, error: { message: 'Forbidden' } })));
+    comp.create();
+    expect(mockSessionStorage.getItem('access_token')).toBe('tok');
+    expect(comp.serverError).toBe('Forbidden');
+  });
 });
