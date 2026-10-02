@@ -1199,11 +1199,14 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
         // A Google access token lives ~1h and is never refreshed. Once expired,
         // the stored token would be replayed forever — drop it so the next click
         // starts a fresh sign-in instead of failing identically.
-        // A missing/malformed Authorization header surfaces as 401 directly from
-        // forms.controller.ts. An expired/invalid token that DOES reach Google is
-        // never validated locally — it is forwarded straight to the Forms API,
-        // whose rejection is caught by AllExceptionsFilter's isGoogleApiError()
-        // branch and remapped to 502 with a "Google API error: …" message. Treat
+        // A missing/malformed Authorization header, and now also a token whose
+        // audience doesn't match this app (or that Google's tokeninfo endpoint
+        // reports invalid/expired), surface as a clean 401 straight from the
+        // backend (forms.controller.ts / google-forms.service.ts). The 502
+        // branch below is a fallback for the rarer case where a bad token
+        // slips past that check (e.g. tokeninfo was unreachable and the check
+        // failed open) and is only caught once forwarded to the Forms API
+        // itself, via AllExceptionsFilter's isGoogleApiError() branch. Treat
         // both shapes as an expired session; a 403 is a scope/consent problem,
         // not expiry, so it must NOT clear the token.
         const message: string = err?.error?.message ?? '';

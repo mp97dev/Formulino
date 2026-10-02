@@ -51,8 +51,8 @@ import { I18nService } from '../services/i18n.service';
         <section>
           <h2>Cookie e tecnologie di archiviazione locale</h2>
           <p>
-            Formulino non utilizza cookie. Utilizza però tecnologie di archiviazione equivalenti,
-            disciplinate dall'art. 122 del Codice in materia di protezione dei dati personali
+            Formulino utilizza un cookie tecnico e tecnologie di archiviazione equivalenti,
+            disciplinati dall'art. 122 del Codice in materia di protezione dei dati personali
             (D.Lgs. 196/2003, come modificato dal D.Lgs. 101/2018):
           </p>
           <table class="storage-table">
@@ -60,6 +60,13 @@ import { I18nService } from '../services/i18n.service';
               <tr><th>Tecnologia</th><th>Dato</th><th>Finalità</th><th>Durata</th><th>Consenso</th></tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>cookie</code> (HttpOnly, SameSite=Lax)</td>
+                <td><code>formulino_oauth_state</code></td>
+                <td>Protezione CSRF del flusso di login Google (verifica che la risposta OAuth appartenga a questo browser)</td>
+                <td>5 minuti — cancellato non appena il login è completato</td>
+                <td>Non richiesto — tecnicamente necessario (art. 122.1 Codice privacy)</td>
+              </tr>
               <tr>
                 <td><code>sessionStorage</code></td>
                 <td><code>access_token</code></td>
@@ -190,7 +197,7 @@ import { I18nService } from '../services/i18n.service';
         <section>
           <h2>Cookies and local storage technologies</h2>
           <p>
-            Formulino does not use cookies. It does use equivalent local storage technologies,
+            Formulino uses one technical cookie and equivalent local storage technologies,
             governed by Article 122 of the Italian Data Protection Code (Legislative Decree
             196/2003, as amended by Legislative Decree 101/2018), which implements the ePrivacy
             Directive:
@@ -200,6 +207,13 @@ import { I18nService } from '../services/i18n.service';
               <tr><th>Technology</th><th>Data</th><th>Purpose</th><th>Duration</th><th>Consent</th></tr>
             </thead>
             <tbody>
+              <tr>
+                <td><code>cookie</code> (HttpOnly, SameSite=Lax)</td>
+                <td><code>formulino_oauth_state</code></td>
+                <td>CSRF protection for the Google sign-in flow (proves the OAuth response belongs to this browser)</td>
+                <td>5 minutes — deleted as soon as the login completes</td>
+                <td>Not required — strictly necessary (ePrivacy strictly-necessary exemption, Art. 122(1))</td>
+              </tr>
               <tr>
                 <td><code>sessionStorage</code></td>
                 <td><code>access_token</code></td>

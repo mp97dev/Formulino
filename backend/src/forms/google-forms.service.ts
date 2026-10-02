@@ -1,12 +1,53 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { forms } from '@googleapis/forms';
 import { OAuth2Client } from 'google-auth-library';
 import type { FormSettings } from './dsl-types';
 import type { GoogleFormsRequest } from './mapper.service';
 
+interface GoogleTokenInfo {
+  aud?: string;
+  error?: string;
+  error_description?: string;
+}
+
 @Injectable()
 export class GoogleFormsService {
   private readonly logger = new Logger(GoogleFormsService.name);
+  private readonly tokenInfoUrl = 'https://oauth2.googleapis.com/tokeninfo';
+
+  // FormsController.create() accepts a caller-supplied bearer token and
+  // forwards it to Google as-is; nothing before this stopped a token minted
+  // for a *different* Google OAuth client from being replayed here. Checking
+  // `aud` against our own client id confirms the token was actually issued
+  // for this application before we spend a Google API call on it.
+  async verifyTokenAudience(accessToken: string): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.tokenInfoUrl}?access_token=${encodeURIComponent(accessToken)}`,
+      );
+    } catch {
+      // Google's introspection endpoint being unreachable must not take form
+      // creation down — fail open and let the downstream Forms API call be
+      // the real authority on whether the token works.
+      this.logger.warn('Token audience check skipped: tokeninfo endpoint unreachable');
+      return;
+    }
+
+    // Never log the token itself or the raw tokeninfo body — it's a live
+    // credential for the caller's Google account.
+    if (!response.ok) {
+      throw new UnauthorizedException('Access token is invalid or expired');
+    }
+
+    const tokenInfo = (await response.json()) as GoogleTokenInfo;
+    if (tokenInfo.error) {
+      throw new UnauthorizedException('Access token is invalid or expired');
+    }
+    if (tokenInfo.aud && tokenInfo.aud !== process.env.GOOGLE_CLIENT_ID) {
+      throw new UnauthorizedException('Access token was not issued for this application');
+    }
+  }
 
   private buildOAuth2Client(accessToken: string) {
     const client = new OAuth2Client(

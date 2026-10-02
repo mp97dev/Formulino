@@ -30,6 +30,7 @@ function makeServices(overrides: Partial<GoogleFormsService> = {}) {
     createForm: jest.fn().mockResolvedValue({ formId: 'form-123', formUrl: 'https://example.com' }),
     batchUpdate: jest.fn().mockResolvedValue(undefined),
     patchFormSettings: jest.fn().mockResolvedValue(undefined),
+    verifyTokenAudience: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as GoogleFormsService;
 
@@ -64,6 +65,7 @@ describe('FormsController.create', () => {
     const callOrder: string[] = [];
     const { validator } = makeServices();
     const googleForms = {
+      verifyTokenAudience: jest.fn().mockResolvedValue(undefined),
       createForm: jest.fn().mockResolvedValue({ formId: 'form-123', formUrl: 'https://example.com' }),
       patchFormSettings: jest.fn().mockImplementation(async () => { callOrder.push('patchFormSettings'); }),
       batchUpdate: jest.fn().mockImplementation(async () => { callOrder.push('batchUpdate'); }),
@@ -100,5 +102,78 @@ describe('FormsController.create', () => {
       regularForm.settings,
       false,
     );
+  });
+
+  it('calls verifyTokenAudience before createForm', async () => {
+    const callOrder: string[] = [];
+    const { validator } = makeServices();
+    const googleForms = {
+      verifyTokenAudience: jest.fn().mockImplementation(async () => { callOrder.push('verifyTokenAudience'); }),
+      createForm: jest.fn().mockImplementation(async () => { callOrder.push('createForm'); return { formId: 'form-123', formUrl: 'https://example.com' }; }),
+      patchFormSettings: jest.fn().mockResolvedValue(undefined),
+      batchUpdate: jest.fn().mockResolvedValue(undefined),
+    } as unknown as GoogleFormsService;
+
+    const controller = new FormsController(validator, googleForms);
+    await controller.create(quizForm, 'Bearer tok');
+
+    expect(callOrder).toEqual(['verifyTokenAudience', 'createForm']);
+  });
+
+  it('propagates UnauthorizedException from verifyTokenAudience without calling createForm', async () => {
+    const { validator, googleForms } = makeServices({
+      verifyTokenAudience: jest.fn().mockRejectedValue(
+        new UnauthorizedException('Access token was not issued for this application'),
+      ),
+    });
+    const controller = new FormsController(validator, googleForms);
+
+    await expect(controller.create(quizForm, 'Bearer tok')).rejects.toThrow(UnauthorizedException);
+    expect(googleForms.createForm).not.toHaveBeenCalled();
+  });
+});
+
+// These exercise the real GoogleFormsService.verifyTokenAudience implementation
+// (mocking global.fetch, the Google tokeninfo call) rather than a stub, since
+// that is where the audience check actually lives.
+describe('GoogleFormsService.verifyTokenAudience', () => {
+  const requiredEnv = { GOOGLE_CLIENT_ID: 'this-app-client-id' };
+
+  beforeEach(() => {
+    Object.assign(process.env, requiredEnv);
+  });
+
+  afterEach(() => {
+    for (const key of Object.keys(requiredEnv)) {
+      delete process.env[key];
+    }
+    jest.restoreAllMocks();
+  });
+
+  it('throws UnauthorizedException when aud does not match GOOGLE_CLIENT_ID', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ aud: 'someone-elses-client-id' }),
+    } as Response);
+
+    const service = new GoogleFormsService();
+    await expect(service.verifyTokenAudience('tok')).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('proceeds (resolves) when aud matches GOOGLE_CLIENT_ID', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ aud: 'this-app-client-id' }),
+    } as Response);
+
+    const service = new GoogleFormsService();
+    await expect(service.verifyTokenAudience('tok')).resolves.toBeUndefined();
+  });
+
+  it('proceeds (fails open) when fetch itself rejects', async () => {
+    jest.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'));
+
+    const service = new GoogleFormsService();
+    await expect(service.verifyTokenAudience('tok')).resolves.toBeUndefined();
   });
 });

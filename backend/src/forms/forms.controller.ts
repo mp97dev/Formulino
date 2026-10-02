@@ -52,6 +52,10 @@ export class FormsController {
       throw new UnprocessableEntityException({ errors: validation.errors });
     }
 
+    // Confirm the caller-supplied token was actually issued for this
+    // application before spending a Google Forms API call on it.
+    await this.googleForms.verifyTokenAudience(accessToken);
+
     const form = body as Form;
     const { formId, formUrl } = await this.googleForms.createForm(
       accessToken,

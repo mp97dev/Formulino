@@ -15,7 +15,8 @@ sleepApplication = false
 #   GOOGLE_CLIENT_SECRET    — required for server-side token exchange
 #   GOOGLE_REDIRECT_URI     — https://<RAILWAY_DOMAIN>/api/auth/google/callback  (Nginx proxies /api/* to backend)
 #   FRONTEND_URL            — https://<RAILWAY_DOMAIN> (where Angular app is served)
+#   CORS_ORIGIN             — https://<RAILWAY_DOMAIN> (the localhost:4200 fallback is dev-only; unset in
+#                              production silently allows the wrong origin or gets flagged via a startup warning)
 #
 # Optional:
-#   CORS_ORIGIN             — https://<RAILWAY_DOMAIN>
 #   BACKEND_PORT            — internal NestJS port (default: 3000)

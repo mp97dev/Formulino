@@ -12,6 +12,10 @@ server {
   root /srv/frontend;
   index index.html;
 
+  # Drops the nginx version banner from the Server header and error pages —
+  # no reason to hand a would-be attacker a version number to look up CVEs for.
+  server_tokens off;
+
   # Compression
   gzip on;
   gzip_types text/plain text/css application/javascript application/json image/svg+xml;
@@ -21,18 +25,23 @@ server {
   # IMPORTANT: repeated inside every child location block that uses add_header,
   # because nginx replaces (not appends) parent add_header directives in child blocks.
   add_header X-Content-Type-Options "nosniff" always;
-  add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Frame-Options "DENY" always;
   add_header Referrer-Policy "strict-origin-when-cross-origin" always;
   add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'" always;
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'; frame-ancestors 'none'" always;
+  # Railway terminates TLS in front of the container, so this is safe to send
+  # unconditionally — browsers ignore HSTS over plain http, which is what
+  # scripts/test_local_docker.sh talks anyway.
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
   # index.html must never be cached: it is what points at the hashed asset names.
   location = /index.html {
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'; frame-ancestors 'none'" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     # No `expires` directive here: it would emit a second, redundant Cache-Control.
     add_header Cache-Control "no-cache, must-revalidate" always;
   }
@@ -41,10 +50,11 @@ server {
   # Security headers repeated here — nginx child add_header replaces parent headers.
   location ~* \.(js|css|woff2?|ttf|eot|svg|png|jpg|gif|ico)$ {
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; frame-src https://ko-fi.com; font-src 'self'; frame-ancestors 'none'" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header Cache-Control $asset_cache_control always;
     try_files $uri =404;
   }
