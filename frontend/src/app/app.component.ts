@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
 import { FormsService } from './services/forms.service';
 import { I18nService, StringKey } from './services/i18n.service';
+import { clearToken, getToken } from './services/google-session';
 import { environment } from '../environments/environment';
 import { Form, Question, QuestionType, OPTION_QUESTION_TYPES } from './models/form-dsl';
 
@@ -294,14 +295,18 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
         </div>
       </details>
 
+      <p class="google-status" [class.connected]="googleConnected">
+        {{ googleConnected ? '✓ ' + i18n.t('wizardStep4Connected') : i18n.t('wizardStep4WillRedirect') }}
+      </p>
+
       <div class="result result-error" *ngIf="serverError">
         <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
       </div>
 
       <div class="actions-row">
         <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
-        <button type="button" class="btn-primary step-cta-inline" (click)="create()" [disabled]="isWorking">
-          {{ state === 'creating' ? i18n.t('creating') : i18n.t('wizardStep4Cta') }}
+        <button type="button" class="btn-primary step-cta-inline" [class.btn-connect]="!googleConnected" (click)="create()" [disabled]="isWorking">
+          {{ state === 'creating' ? i18n.t('creating') : googleConnected ? i18n.t('wizardStep4CtaCreate') : i18n.t('wizardStep4CtaConnect') }}
         </button>
       </div>
     </div>
@@ -666,6 +671,23 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
     .result-error {
       border: 1px solid var(--error);
       color: var(--error);
+    }
+
+    .google-status {
+      font-size: .9rem;
+      color: var(--text-secondary);
+      margin: 0 0 .75rem;
+    }
+
+    .google-status.connected {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .btn-connect {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
     }
 
     ul {
@@ -1104,6 +1126,12 @@ export class AppComponent implements OnInit {
 
 Rules: pages sequential only; options required for multiple_choice/checkbox/dropdown; correctAnswer+score quiz-only; all ids unique. Minify the JSON (no spaces, no newlines). Output ONLY the minified JSON string.`;
 
+  formId = '';
+
+  get googleConnected(): boolean {
+    return getToken() !== null;
+  }
+
   get isWorking(): boolean {
     return this.state === 'validating' || this.state === 'creating';
   }
@@ -1133,7 +1161,27 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
         pendingStep && STEP_ORDER.includes(pendingStep) && pendingStep !== 'done'
           ? pendingStep
           : 'step3';
+      const resumed = this.parseStoredForm(pending);
+      if (resumed && this.currentStep === 'step4' && getToken() !== null) {
+        // The user already clicked "create" before being sent to Google:
+        // finish the job instead of asking them to click again. The pending_*
+        // flags were removed above, so a reload cannot create a second form.
+        this.editableForm = resumed;
+        this.create();
+        return;
+      }
       this.validate();
+    }
+  }
+
+  private parseStoredForm(text: string): Form | null {
+    try {
+      const value: unknown = JSON.parse(text);
+      return typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? (value as Form)
+        : null;
+    } catch {
+      return null;
     }
   }
 
@@ -1179,7 +1227,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     const payload = this.editableForm ?? this.parseDsl();
     if (!payload) return;
 
-    const token = sessionStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       sessionStorage.setItem('pending_dsl', JSON.stringify(payload));
       sessionStorage.setItem('pending_step', this.currentStep);
@@ -1192,6 +1240,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
       next: (res) => {
         this.state = 'success';
         this.formUrl = res.formUrl;
+        this.formId = res.formId;
         this.currentStep = 'done';
       },
       error: (err) => {
@@ -1213,7 +1262,7 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
         const looksLikeExpiredGoogleAuth =
           err?.status === 502 && /invalid.*(credential|authentication|token)/i.test(message);
         if (err?.status === 401 || looksLikeExpiredGoogleAuth) {
-          sessionStorage.removeItem('access_token');
+          clearToken();
           this.serverError = this.i18n.t('sessionExpired');
           return;
         }

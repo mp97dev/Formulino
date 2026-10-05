@@ -247,4 +247,64 @@ describe('AppComponent', () => {
     expect(mockSessionStorage.getItem('access_token')).toBe('tok');
     expect(comp.serverError).toBe('Forbidden');
   });
+
+  describe('auto-resume after Google login', () => {
+    const form = {
+      id: 'form-1', title: 'T', description: '', mode: 'form',
+      settings: { collectEmails: false, limitOneResponse: false, shuffleQuestions: false },
+      pages: [{ id: 'p1', title: 'P', questions: [{ id: 'q1', type: 'text', title: 'Q', required: false }] }],
+    };
+
+    beforeEach(() => {
+      mockSessionStorage.setItem('pending_dsl', JSON.stringify(form));
+      mockSessionStorage.setItem('pending_step', 'step4');
+      svc.createForm.mockReturnValue(of({ formId: 'id1', formUrl: 'https://forms.google.com/x' }));
+    });
+
+    it('creates the form once when a fresh token is present', () => {
+      mockSessionStorage.setItem('access_token', 'tok');
+      comp.ngOnInit();
+      expect(svc.createForm).toHaveBeenCalledTimes(1);
+      expect(svc.createForm).toHaveBeenCalledWith(form, 'tok');
+      expect(comp.currentStep).toBe('done');
+      // a reload must not create a second form
+      expect(mockSessionStorage.getItem('pending_dsl')).toBeNull();
+      comp.ngOnInit();
+      expect(svc.createForm).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not create when the token is older than 55 minutes', () => {
+      mockSessionStorage.setItem('access_token', 'tok');
+      mockSessionStorage.setItem('access_token_at', String(Date.now() - 56 * 60_000));
+      svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+      comp.ngOnInit();
+      expect(svc.createForm).not.toHaveBeenCalled();
+      expect(comp.currentStep).toBe('step4');
+      expect(comp.googleConnected).toBe(false);
+    });
+
+    it('does not create when resuming from an earlier step', () => {
+      mockSessionStorage.setItem('access_token', 'tok');
+      mockSessionStorage.setItem('pending_step', 'step3');
+      svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+      comp.ngOnInit();
+      expect(svc.createForm).not.toHaveBeenCalled();
+    });
+
+    it('keeps the session cleared after a 401 so the button reverts to "connect"', () => {
+      mockSessionStorage.setItem('access_token', 'tok');
+      svc.createForm.mockReturnValue(throwError(() => ({ status: 401 })));
+      comp.ngOnInit();
+      expect(comp.googleConnected).toBe(false);
+      expect(comp.serverError).toBe('sessionExpired');
+    });
+  });
+
+  it('create: stores formId on success', () => {
+    comp.dslJson = '{"title":"T"}';
+    mockSessionStorage.setItem('access_token', 'tok');
+    svc.createForm.mockReturnValue(of({ formId: 'id1', formUrl: 'u' }));
+    comp.create();
+    expect(comp.formId).toBe('id1');
+  });
 });

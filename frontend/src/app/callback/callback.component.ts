@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { saveToken } from '../services/google-session';
 
 @Component({
   selector: 'app-callback',
@@ -24,7 +25,7 @@ export class CallbackComponent implements OnInit {
     const token = hash.get('access_token');
 
     if (token) {
-      sessionStorage.setItem('access_token', token);
+      saveToken(token);
       // Clear fragment so the token doesn't linger in browser history.
       history.replaceState(null, '', window.location.pathname + window.location.search);
       void this.router.navigate(['/']);
