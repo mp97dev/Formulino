@@ -1,9 +1,27 @@
 import { Form, FormMode, Media, Page, Question, QuestionType } from './models/form-dsl';
 
-export type NormalizeWarning =
+export type WarningCode =
   | 'invalid_media_removed'
   | 'unknown_type_replaced'
-  | 'empty_questions_removed';
+  | 'empty_questions_removed'
+  | 'unknown_keys_removed'
+  | 'options_removed'
+  | 'answer_resolved'
+  | 'answer_not_in_options'
+  | 'mode_set_quiz'
+  | 'answers_missing';
+
+export interface NormalizeWarning {
+  code: WarningCode;
+  /** form-wide, page or question level (for unknown_keys_removed) */
+  scope?: 'form' | 'page' | 'question';
+  /** 1-based page or question number, as the user sees them in the pasted JSON */
+  n?: number;
+  /** unknown keys, or question numbers for answers_missing */
+  keys?: string[];
+  from?: string;
+  to?: string;
+}
 
 export type NormalizeResult =
   | { ok: true; form: Form; warnings: NormalizeWarning[] }
@@ -17,6 +35,44 @@ const QUESTION_TYPES: QuestionType[] = [
   'true_false',
   'short_answer',
 ];
+const TYPES_WITHOUT_OPTIONS: QuestionType[] = ['text', 'short_answer'];
+const TYPES_WITH_OPTIONS: QuestionType[] = ['multiple_choice', 'checkbox', 'dropdown', 'true_false'];
+const TYPE_ALIASES: Record<string, QuestionType> = {
+  multiple_choice: 'multiple_choice',
+  single_choice: 'multiple_choice',
+  radio: 'multiple_choice',
+  scelta_multipla: 'multiple_choice',
+  checkboxes: 'checkbox',
+  multi_select: 'checkbox',
+  multiple_select: 'checkbox',
+  select: 'dropdown',
+  boolean: 'true_false',
+  true_false: 'true_false',
+  vero_falso: 'true_false',
+  short: 'short_answer',
+  short_text: 'short_answer',
+  open: 'text',
+  paragraph: 'text',
+  long_answer: 'text',
+  long_text: 'text',
+};
+// Alias -> canonical key; only applied when the canonical key is absent.
+const KEY_ALIASES: Record<string, string> = {
+  question: 'title',
+  text: 'title',
+  prompt: 'title',
+  answer: 'correctAnswer',
+  correct_answer: 'correctAnswer',
+  correct: 'correctAnswer',
+  points: 'score',
+  choices: 'options',
+};
+const FORM_KEYS = ['title', 'description', 'mode', 'pages', 'questions', 'settings', 'id'];
+const PAGE_KEYS = ['title', 'questions', 'id'];
+const QUESTION_KEYS = [
+  'id', 'type', 'title', 'required', 'options', 'correctAnswer', 'score', 'media', 'metadata', 'imageHint',
+];
+const METADATA_KEYS = ['topic', 'difficulty', 'imageHint'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MAX_IMAGE_HINT = 300;
 
@@ -78,7 +134,58 @@ export function extractJson(raw: string): unknown | undefined {
   return undefined;
 }
 
-function normalizeMedia(raw: unknown, warnings: Set<NormalizeWarning>): Media | undefined {
+/** Human-readable reason why a reply could not be read as JSON (for the repair prompt). */
+export function diagnoseJson(raw: string): string {
+  const text = raw.trim();
+  if (!text) return 'The reply is empty.';
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1) return 'No JSON object found: the reply must contain a block starting with "{".';
+  if (end <= start) return 'The JSON object is not closed: the reply seems truncated (missing "}").';
+  try {
+    JSON.parse(text.slice(start, end + 1));
+  } catch (e) {
+    return `Invalid JSON syntax: ${e instanceof Error ? e.message : String(e)}`;
+  }
+  return 'The reply could not be read as JSON.';
+}
+
+function reportUnknownKeys(
+  raw: Record<string, unknown>,
+  known: string[],
+  extraAliases: boolean,
+  warn: Omit<NormalizeWarning, 'code' | 'keys'>,
+  warnings: NormalizeWarning[],
+): void {
+  const keys = Object.keys(raw).filter(
+    (k) => !known.includes(k) && !(extraAliases && k in KEY_ALIASES),
+  );
+  if (keys.length > 0) warnings.push({ code: 'unknown_keys_removed', ...warn, keys });
+}
+
+/** Copies known alias keys (question -> title, ...) when the canonical key is missing. */
+function applyAliases(raw: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...raw };
+  for (const [alias, canonical] of Object.entries(KEY_ALIASES)) {
+    if (alias in out && !(canonical in out)) out[canonical] = out[alias];
+  }
+  return out;
+}
+
+function resolveAnswer(answer: string, options: string[]): string | undefined {
+  if (options.includes(answer)) return answer;
+  const clean = (v: string) => v.trim().toLowerCase().replace(/\s+/g, ' ');
+  const byText = options.find((o) => clean(o) === clean(answer));
+  if (byText) return byText;
+  const letter = answer.trim().match(/^\(?([A-Za-z])[).:]?$/);
+  if (letter) {
+    const idx = letter[1].toUpperCase().charCodeAt(0) - 65;
+    if (idx < options.length) return options[idx];
+  }
+  return undefined;
+}
+
+function normalizeMedia(raw: unknown, n: number, warnings: NormalizeWarning[]): Media | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (
     isRecord(raw) &&
@@ -88,19 +195,22 @@ function normalizeMedia(raw: unknown, warnings: Set<NormalizeWarning>): Media | 
   ) {
     return { type: raw['type'], url: raw['url'] };
   }
-  warnings.add('invalid_media_removed');
+  warnings.push({ code: 'invalid_media_removed', n });
   return undefined;
 }
 
 function normalizeQuestion(
-  raw: unknown,
+  rawInput: unknown,
   id: string,
-  warnings: Set<NormalizeWarning>,
+  n: number,
+  warnings: NormalizeWarning[],
 ): Question | null {
-  if (!isRecord(raw)) return null;
+  if (!isRecord(rawInput)) return null;
+  reportUnknownKeys(rawInput, QUESTION_KEYS, true, { scope: 'question', n }, warnings);
+  const raw = applyAliases(rawInput);
   const title = str(raw['title']);
   if (!title) {
-    warnings.add('empty_questions_removed');
+    warnings.push({ code: 'empty_questions_removed', n });
     return null;
   }
 
@@ -108,27 +218,52 @@ function normalizeQuestion(
     ? raw['options'].map(str).filter((o): o is string => !!o)
     : [];
 
-  let type = raw['type'] as QuestionType;
-  if (!QUESTION_TYPES.includes(type)) {
+  const rawType = typeof raw['type'] === 'string' ? raw['type'] : '';
+  const typeKey = rawType.trim().toLowerCase().replace(/[\s/-]+/g, '_');
+  let type: QuestionType;
+  if (QUESTION_TYPES.includes(typeKey as QuestionType)) {
+    type = typeKey as QuestionType;
+  } else if (TYPE_ALIASES[typeKey]) {
+    type = TYPE_ALIASES[typeKey];
+  } else {
     type = options.length > 0 ? 'multiple_choice' : 'short_answer';
-    warnings.add('unknown_type_replaced');
+    warnings.push({ code: 'unknown_type_replaced', n, from: rawType || '(missing)', to: type });
   }
 
   const question: Question = { id, type, title, required: bool(raw['required'], false) };
-  if (options.length > 0) question.options = options;
+  if (TYPES_WITH_OPTIONS.includes(type) && options.length > 0) {
+    question.options = options;
+  } else if (TYPES_WITHOUT_OPTIONS.includes(type) && options.length > 0) {
+    warnings.push({ code: 'options_removed', n, from: type });
+  }
 
   const correctAnswer = str(raw['correctAnswer']);
-  if (correctAnswer) question.correctAnswer = correctAnswer;
+  if (correctAnswer) {
+    if (question.options) {
+      const resolved = resolveAnswer(correctAnswer, question.options);
+      if (resolved) {
+        question.correctAnswer = resolved;
+        if (resolved !== correctAnswer) {
+          warnings.push({ code: 'answer_resolved', n, from: correctAnswer, to: resolved });
+        }
+      } else {
+        warnings.push({ code: 'answer_not_in_options', n, from: correctAnswer });
+      }
+    } else {
+      question.correctAnswer = correctAnswer;
+    }
+  }
 
   const scoreRaw = raw['score'];
   const score =
     typeof scoreRaw === 'string' && scoreRaw.trim() !== '' ? Number(scoreRaw) : scoreRaw;
   if (typeof score === 'number' && Number.isFinite(score) && score >= 0) question.score = score;
 
-  const media = normalizeMedia(raw['media'], warnings);
+  const media = normalizeMedia(raw['media'], n, warnings);
   if (media) question.media = media;
 
   const meta = isRecord(raw['metadata']) ? raw['metadata'] : {};
+  reportUnknownKeys(meta, METADATA_KEYS, false, { scope: 'question', n }, warnings);
   const metadata: NonNullable<Question['metadata']> = {};
   const topic = str(meta['topic']);
   if (topic) metadata.topic = topic;
@@ -147,7 +282,8 @@ export function normalizeDsl(raw: string): NormalizeResult {
   const parsed = extractJson(raw);
   if (!isRecord(parsed)) return { ok: false };
 
-  const warnings = new Set<NormalizeWarning>();
+  const warnings: NormalizeWarning[] = [];
+  reportUnknownKeys(parsed, FORM_KEYS, false, { scope: 'form' }, warnings);
   const title = str(parsed['title']) ?? 'Nuovo form';
   let counter = 0;
 
@@ -157,24 +293,41 @@ export function normalizeDsl(raw: string): NormalizeResult {
       ? [{ title, questions: parsed['questions'] }]
       : [];
 
-  const pages: Page[] = rawPages.filter(isRecord).map((p, i) => ({
-    id: `p${i + 1}`,
-    title: str(p['title']) ?? (i === 0 ? title : `Sezione ${i + 1}`),
-    questions: (Array.isArray(p['questions']) ? p['questions'] : [])
-      .map((q) => normalizeQuestion(q, `q${++counter}`, warnings))
-      .filter((q): q is Question => q !== null),
-  }));
+  const pages: Page[] = rawPages.filter(isRecord).map((p, i) => {
+    reportUnknownKeys(p, PAGE_KEYS, false, { scope: 'page', n: i + 1 }, warnings);
+    return {
+      id: `p${i + 1}`,
+      title: str(p['title']) ?? (i === 0 ? title : `Sezione ${i + 1}`),
+      questions: (Array.isArray(p['questions']) ? p['questions'] : [])
+        .map((q) => {
+          counter += 1;
+          return normalizeQuestion(q, `q${counter}`, counter, warnings);
+        })
+        .filter((q): q is Question => q !== null),
+    };
+  });
 
   const hasAnswerKey = pages.some((p) => p.questions.some((q) => q.correctAnswer));
   const rawMode = parsed['mode'];
-  const mode: FormMode =
-    rawMode === 'quiz' || rawMode === 'form' ? rawMode : hasAnswerKey ? 'quiz' : 'form';
+  const mode: FormMode = rawMode === 'quiz' || hasAnswerKey ? 'quiz' : 'form';
+  if (rawMode === 'form' && hasAnswerKey) warnings.push({ code: 'mode_set_quiz' });
+
+  if (mode === 'quiz') {
+    const missing: string[] = [];
+    pages.forEach((p) =>
+      p.questions.forEach((q) => {
+        if (q.options && !q.correctAnswer) missing.push(q.id.slice(1));
+        if (q.correctAnswer && q.score === undefined) q.score = 1;
+      }),
+    );
+    if (missing.length > 0) warnings.push({ code: 'answers_missing', keys: missing });
+  }
 
   const settings = isRecord(parsed['settings']) ? parsed['settings'] : {};
 
   return {
     ok: true,
-    warnings: [...warnings],
+    warnings,
     form: {
       id: 'form-1',
       title,

@@ -7,7 +7,7 @@ import { I18nService, StringKey } from './services/i18n.service';
 import { clearToken, getToken } from './services/google-session';
 import { environment } from '../environments/environment';
 import { buildPrompt, buildRepairPrompt, PromptMode } from './prompts';
-import { normalizeDsl, NormalizeWarning } from './dsl-normalizer';
+import { diagnoseJson, normalizeDsl, NormalizeWarning } from './dsl-normalizer';
 import { Form, Question, QuestionType, OPTION_QUESTION_TYPES } from './models/form-dsl';
 
 type AppState = 'idle' | 'validating' | 'creating' | 'success' | 'error';
@@ -161,7 +161,7 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       </div>
       <div class="result result-warn" *ngIf="warnings.length > 0">
         <strong>{{ i18n.t('wizardStep3Fixed') }}</strong>
-        <ul><li *ngFor="let w of warnings">{{ i18n.t(warningKey(w)) }}</li></ul>
+        <ul><li *ngFor="let w of warnings">{{ warningText(w) }}</li></ul>
       </div>
       <div class="repair-box" *ngIf="errors.length > 0">
         <p>{{ i18n.t('wizardStep3RepairHint') }}</p>
@@ -1200,14 +1200,28 @@ export class AppComponent implements OnInit {
   repairProblems: string[] = [];
   repairCopied = false;
 
-  private readonly WARNING_KEYS: Record<NormalizeWarning, StringKey> = {
-    invalid_media_removed: 'normWarnInvalidMedia',
-    unknown_type_replaced: 'normWarnUnknownType',
-    empty_questions_removed: 'normWarnEmptyQuestions',
-  };
-
-  warningKey(w: NormalizeWarning): StringKey {
-    return this.WARNING_KEYS[w];
+  warningText(w: NormalizeWarning): string {
+    const keys = (w.keys ?? []).join(', ');
+    const params = { n: w.n ?? '', keys, from: w.from ?? '', to: w.to ?? '' };
+    switch (w.code) {
+      case 'unknown_keys_removed':
+        return this.i18n.tp(
+          w.scope === 'question'
+            ? 'normWarnUnknownKeysQuestion'
+            : w.scope === 'page'
+              ? 'normWarnUnknownKeysPage'
+              : 'normWarnUnknownKeysForm',
+          params,
+        );
+      case 'invalid_media_removed': return this.i18n.tp('normWarnInvalidMedia', params);
+      case 'unknown_type_replaced': return this.i18n.tp('normWarnUnknownType', params);
+      case 'empty_questions_removed': return this.i18n.tp('normWarnEmptyQuestions', params);
+      case 'options_removed': return this.i18n.tp('normWarnOptionsRemoved', params);
+      case 'answer_resolved': return this.i18n.tp('normWarnAnswerResolved', params);
+      case 'answer_not_in_options': return this.i18n.tp('normWarnAnswerNotInOptions', params);
+      case 'mode_set_quiz': return this.i18n.tp('normWarnModeQuiz', params);
+      case 'answers_missing': return this.i18n.tp('normWarnAnswersMissing', params);
+    }
   }
 
   chooseMode(mode: PromptMode): void {
@@ -1276,7 +1290,7 @@ export class AppComponent implements OnInit {
     const result = normalizeDsl(this.dslJson);
     if (!result.ok) {
       this.errors = [this.i18n.t('invalidJson')];
-      this.repairProblems = ['The reply could not be read as JSON.'];
+      this.repairProblems = [diagnoseJson(this.dslJson)];
       this.state = 'error';
       return null;
     }
@@ -1365,7 +1379,7 @@ export class AppComponent implements OnInit {
   }
 
   copyRepairPrompt(): void {
-    navigator.clipboard.writeText(buildRepairPrompt(this.repairProblems)).then(() => {
+    navigator.clipboard.writeText(buildRepairPrompt(this.repairProblems, this.dslJson)).then(() => {
       this.repairCopied = true;
       setTimeout(() => { this.repairCopied = false; }, 2000);
     });

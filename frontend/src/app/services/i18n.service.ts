@@ -88,9 +88,17 @@ const STRINGS = {
     wizardStep3RepairHint: 'Copia questo messaggio e incollalo nella stessa chat dell\'AI: ti darà il codice corretto.',
     wizardStep3RepairBtn: 'Copia il messaggio di correzione',
     wizardStep3Fixed: 'Abbiamo sistemato automaticamente alcuni punti:',
-    normWarnInvalidMedia: 'Un link immagine non valido è stato rimosso (deve iniziare con https://).',
-    normWarnUnknownType: 'Un tipo di domanda sconosciuto è stato sostituito con quello più vicino.',
-    normWarnEmptyQuestions: 'Alcune domande senza testo sono state scartate.',
+    normWarnInvalidMedia: 'Domanda {n}: link media non valido rimosso (deve iniziare con https://).',
+    normWarnUnknownType: 'Domanda {n}: il tipo «{from}» non esiste nello schema, usato «{to}».',
+    normWarnEmptyQuestions: 'Domanda {n}: senza testo, scartata.',
+    normWarnUnknownKeysForm: 'Form: le chiavi {keys} non sono definite nello schema e sono state ignorate.',
+    normWarnUnknownKeysPage: 'Pagina {n}: le chiavi {keys} non sono definite nello schema e sono state ignorate.',
+    normWarnUnknownKeysQuestion: 'Domanda {n}: le chiavi {keys} non sono definite nello schema e sono state ignorate.',
+    normWarnOptionsRemoved: 'Domanda {n}: il tipo «{from}» non ha opzioni, quelle presenti sono state rimosse.',
+    normWarnAnswerResolved: 'Domanda {n}: la risposta corretta «{from}» è stata associata all\'opzione «{to}».',
+    normWarnAnswerNotInOptions: 'Domanda {n}: la risposta corretta «{from}» non corrisponde a nessuna opzione ed è stata rimossa.',
+    normWarnModeQuiz: 'Il form contiene risposte corrette: è stato impostato come quiz.',
+    normWarnAnswersMissing: 'Quiz senza risposta corretta per le domande: {keys}.',
     wizardStep3bImageHint: 'Serve una figura',
     doneImagesTitle: 'Domande a cui aggiungere una figura',
     doneImagesDesc: 'Apri il form in modifica e inserisci le immagini nelle domande elencate: il punto è segnato dal testo 📷 nella domanda.',
@@ -235,9 +243,17 @@ const STRINGS = {
     wizardStep3RepairHint: 'Copy this message and paste it in the same AI chat: it will give you the corrected code.',
     wizardStep3RepairBtn: 'Copy the correction message',
     wizardStep3Fixed: 'We automatically fixed a few things:',
-    normWarnInvalidMedia: 'An invalid image link was removed (it must start with https://).',
-    normWarnUnknownType: 'An unknown question type was replaced with the closest one.',
-    normWarnEmptyQuestions: 'Some questions without text were discarded.',
+    normWarnInvalidMedia: 'Question {n}: invalid media link removed (it must start with https://).',
+    normWarnUnknownType: 'Question {n}: type "{from}" does not exist in the schema, "{to}" was used.',
+    normWarnEmptyQuestions: 'Question {n}: no text, discarded.',
+    normWarnUnknownKeysForm: 'Form: the keys {keys} are not defined in the schema and were ignored.',
+    normWarnUnknownKeysPage: 'Page {n}: the keys {keys} are not defined in the schema and were ignored.',
+    normWarnUnknownKeysQuestion: 'Question {n}: the keys {keys} are not defined in the schema and were ignored.',
+    normWarnOptionsRemoved: 'Question {n}: type "{from}" has no options, the ones present were removed.',
+    normWarnAnswerResolved: 'Question {n}: the correct answer "{from}" was matched to the option "{to}".',
+    normWarnAnswerNotInOptions: 'Question {n}: the correct answer "{from}" matches no option and was removed.',
+    normWarnModeQuiz: 'The form contains correct answers: it was set to quiz.',
+    normWarnAnswersMissing: 'Quiz without a correct answer for questions: {keys}.',
     wizardStep3bImageHint: 'A figure is needed',
     doneImagesTitle: 'Questions that need a figure',
     doneImagesDesc: 'Open the form in edit mode and add the images to the listed questions: the spot is marked by the 📷 text in the question.',
@@ -317,6 +333,11 @@ export class I18nService {
 
   t(key: StringKey): string {
     return STRINGS[this._lang()][key];
+  }
+
+  /** Like t(), replacing {name} placeholders with the given values. */
+  tp(key: StringKey, params: Record<string, string | number>): string {
+    return this.t(key).replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m));
   }
 
   toggle(): void {

@@ -27,8 +27,13 @@ function makeService() {
   return { validate: jest.fn(), createForm: jest.fn() };
 }
 
-function makeI18n(): Pick<I18nService, 't' | 'lang' | 'toggle'> {
-  return { t: (k: string) => k, lang: () => 'it' as const, toggle: jest.fn() };
+function makeI18n(): Pick<I18nService, 't' | 'tp' | 'lang' | 'toggle'> {
+  return {
+    t: (k: string) => k,
+    tp: (k: string, params: Record<string, string | number>) => `${k} ${JSON.stringify(params)}`,
+    lang: () => 'it' as const,
+    toggle: jest.fn(),
+  };
 }
 
 describe('AppComponent', () => {
@@ -344,14 +349,16 @@ describe('AppComponent', () => {
       comp.dslJson = '{"title":"T","pages":[{"title":"P","questions":[{"type":"text","title":"Q","media":{"type":"image","url":"http://x"}}]}]}';
       svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
       comp.validate();
-      expect(comp.warnings).toContain('invalid_media_removed');
+      expect(comp.warnings).toContainEqual({ code: 'invalid_media_removed', n: 1 });
+      expect(comp.warningText(comp.warnings[0])).toContain('1');
     });
 
     it('unreadable input sets invalidJson and a generic repair problem', () => {
       comp.dslJson = 'boh';
       comp.validate();
       expect(comp.errors).toEqual(['invalidJson']);
-      expect(comp.repairProblems).toEqual(['The reply could not be read as JSON.']);
+      expect(comp.repairProblems).toHaveLength(1);
+      expect(comp.repairProblems[0]).toMatch(/No JSON object/);
     });
 
     it('validation errors become repair problems and the repair prompt lists them', async () => {
