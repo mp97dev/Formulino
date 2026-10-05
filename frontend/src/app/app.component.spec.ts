@@ -94,7 +94,7 @@ describe('AppComponent', () => {
     comp.dslJson = '{"title":"T"}';
     mockSessionStorage.removeItem('access_token');
     comp.create();
-    expect(mockSessionStorage.getItem('pending_dsl')).toBe('{"title":"T"}');
+    expect(JSON.parse(mockSessionStorage.getItem('pending_dsl') as string).title).toBe('T');
     expect(svc.createForm).not.toHaveBeenCalled();
   });
 
@@ -127,7 +127,7 @@ describe('AppComponent', () => {
   it('copyPrompt: calls clipboard.writeText with the schema prompt', async () => {
     mockClipboard.writeText.mockClear();
     await comp.copyPrompt();
-    expect(mockClipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('"mode":"form"|"quiz"'));
+    expect(mockClipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('exactly ONE fenced code block'));
     expect(comp.promptCopied).toBe(true);
   });
 
@@ -306,5 +306,91 @@ describe('AppComponent', () => {
     svc.createForm.mockReturnValue(of({ formId: 'id1', formUrl: 'u' }));
     comp.create();
     expect(comp.formId).toBe('id1');
+  });
+
+  describe('step 1 mode choice', () => {
+    it('chooseMode stores the mode and moves to step 2', () => {
+      comp.chooseMode('extract');
+      expect(comp.promptMode).toBe('extract');
+      expect(comp.currentStep).toBe('step2');
+    });
+
+    it('copyPrompt copies the prompt of the chosen mode', async () => {
+      mockClipboard.writeText.mockClear();
+      comp.chooseMode('extract');
+      await comp.copyPrompt();
+      expect(mockClipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('attached'));
+    });
+
+    it('resetWizard clears the chosen mode', () => {
+      comp.chooseMode('generate');
+      comp.resetWizard();
+      expect(comp.promptMode).toBeNull();
+    });
+  });
+
+  describe('tolerant parsing in step 3', () => {
+    it('accepts a fenced reply with missing ids/settings and sends a valid form to the backend', () => {
+      comp.dslJson = 'Ecco:\n```json\n{"title":"T","pages":[{"title":"P","questions":[{"type":"text","title":"Q","extra":1}]}]}\n```';
+      svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+      comp.validate();
+      const sent = svc.validate.mock.calls[0][0];
+      expect(sent.settings).toEqual({ collectEmails: false, limitOneResponse: false, shuffleQuestions: false });
+      expect(sent.pages[0].questions[0]).not.toHaveProperty('extra');
+      expect(comp.validationOk).toBe(true);
+    });
+
+    it('exposes warnings from the normalizer', () => {
+      comp.dslJson = '{"title":"T","pages":[{"title":"P","questions":[{"type":"text","title":"Q","media":{"type":"image","url":"http://x"}}]}]}';
+      svc.validate.mockReturnValue(of({ valid: true, errors: [] }));
+      comp.validate();
+      expect(comp.warnings).toContain('invalid_media_removed');
+    });
+
+    it('unreadable input sets invalidJson and a generic repair problem', () => {
+      comp.dslJson = 'boh';
+      comp.validate();
+      expect(comp.errors).toEqual(['invalidJson']);
+      expect(comp.repairProblems).toEqual(['The reply could not be read as JSON.']);
+    });
+
+    it('validation errors become repair problems and the repair prompt lists them', async () => {
+      comp.dslJson = '{"title":"T"}';
+      svc.validate.mockReturnValue(of({ valid: false, errors: ['/pages: must NOT have fewer than 1 items'] }));
+      comp.validate();
+      mockClipboard.writeText.mockClear();
+      await comp.copyRepairPrompt();
+      expect(mockClipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('/pages: must NOT have fewer than 1 items'),
+      );
+    });
+  });
+
+  describe('image hints', () => {
+    it('lists questions with an imageHint, numbered across pages', () => {
+      comp.editableForm = {
+        id: 'f', title: 'T', description: '', mode: 'form',
+        settings: { collectEmails: false, limitOneResponse: false, shuffleQuestions: false },
+        pages: [
+          { id: 'p1', title: 'A', questions: [{ id: 'q1', type: 'text', title: 'Uno', required: false }] },
+          { id: 'p2', title: 'B', questions: [{ id: 'q2', type: 'text', title: 'Due', required: false, metadata: { imageHint: 'triangolo' } }] },
+        ],
+      };
+      expect(comp.imageHintQuestions()).toEqual([{ n: 2, title: 'Due', hint: 'triangolo' }]);
+    });
+
+    it('does not list a question that already has media', () => {
+      comp.editableForm = {
+        id: 'f', title: 'T', description: '', mode: 'form',
+        settings: { collectEmails: false, limitOneResponse: false, shuffleQuestions: false },
+        pages: [{ id: 'p1', title: 'A', questions: [{ id: 'q1', type: 'text', title: 'Uno', required: false, media: { type: 'image', url: 'https://x/a.png' }, metadata: { imageHint: 'x' } }] }],
+      };
+      expect(comp.imageHintQuestions()).toEqual([]);
+    });
+
+    it('editUrl is built from formId', () => {
+      comp.formId = 'abc';
+      expect(comp.editUrl).toBe('https://docs.google.com/forms/d/abc/edit');
+    });
   });
 });

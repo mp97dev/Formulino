@@ -6,6 +6,8 @@ import { FormsService } from './services/forms.service';
 import { I18nService, StringKey } from './services/i18n.service';
 import { clearToken, getToken } from './services/google-session';
 import { environment } from '../environments/environment';
+import { buildPrompt, buildRepairPrompt, PromptMode } from './prompts';
+import { normalizeDsl, NormalizeWarning } from './dsl-normalizer';
 import { Form, Question, QuestionType, OPTION_QUESTION_TYPES } from './models/form-dsl';
 
 type AppState = 'idle' | 'validating' | 'creating' | 'success' | 'error';
@@ -79,9 +81,18 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
         <div class="help-example">"{{ i18n.t('wizardStep1HelpExample') }}"</div>
       </div>
 
-      <button type="button" class="btn-primary step-cta" (click)="goNext()">
-        {{ i18n.t('wizardStep1Cta') }}
-      </button>
+      <div class="mode-cards">
+        <button type="button" class="mode-card" (click)="chooseMode('extract')">
+          <span class="mode-icon" aria-hidden="true">📄</span>
+          <strong>{{ i18n.t('wizardStep1OptFile') }}</strong>
+          <span>{{ i18n.t('wizardStep1OptFileDesc') }}</span>
+        </button>
+        <button type="button" class="mode-card" (click)="chooseMode('generate')">
+          <span class="mode-icon" aria-hidden="true">✨</span>
+          <strong>{{ i18n.t('wizardStep1OptNew') }}</strong>
+          <span>{{ i18n.t('wizardStep1OptNewDesc') }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- ═══════════════ FAQ (step 1 only) ═══════════════ -->
@@ -97,17 +108,18 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
     <div class="step-card" *ngIf="currentStep === 'step2'">
       <p class="step-badge">{{ i18n.t('wizardBadge2') }}</p>
       <h2>{{ i18n.t('wizardStep2Title') }}</h2>
-      <p class="step-desc">{{ i18n.t('wizardStep2Desc') }}</p>
+      <p class="step-desc">{{ promptMode === 'extract' ? i18n.t('wizardStep2DescFile') : i18n.t('wizardStep2DescNew') }}</p>
 
-      <div class="micro-steps" aria-hidden="true">
-        <div class="micro-step"><span class="micro-num">1</span>{{ i18n.t('wizardStep2Sub1') }}</div>
-        <div class="micro-arrow">→</div>
-        <div class="micro-step"><span class="micro-num">2</span>{{ i18n.t('wizardStep2Sub2') }}</div>
-        <div class="micro-arrow">→</div>
-        <div class="micro-step"><span class="micro-num">3</span>{{ i18n.t('wizardStep2Sub3') }}</div>
-        <div class="micro-arrow">→</div>
-        <div class="micro-step"><span class="micro-num">4</span>{{ i18n.t('wizardStep2Sub4') }}</div>
-      </div>
+      <ol class="micro-steps">
+        <li class="micro-step"><span class="where where-here">{{ i18n.t('wizardWhereHere') }}</span>{{ i18n.t('wizardStep2Sub1') }}</li>
+        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ promptMode === 'extract' ? i18n.t('wizardStep2Sub2File') : i18n.t('wizardStep2Sub2New') }}</li>
+        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub3') }}</li>
+        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub4') }}</li>
+      </ol>
+      <p class="open-ai">{{ i18n.t('wizardOpenAi') }}
+        <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">ChatGPT</a> ·
+        <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer">Gemini</a> ·
+        <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Claude</a></p>
 
       <button type="button" class="copy-prompt-btn" (click)="copyPrompt()">
         {{ promptCopied ? i18n.t('copied') : i18n.t('copyPrompt') }}
@@ -146,6 +158,16 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       </div>
       <div class="result result-error" *ngIf="serverError && !errors.length">
         <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
+      </div>
+      <div class="result result-warn" *ngIf="warnings.length > 0">
+        <strong>{{ i18n.t('wizardStep3Fixed') }}</strong>
+        <ul><li *ngFor="let w of warnings">{{ i18n.t(warningKey(w)) }}</li></ul>
+      </div>
+      <div class="repair-box" *ngIf="errors.length > 0">
+        <p>{{ i18n.t('wizardStep3RepairHint') }}</p>
+        <button type="button" class="copy-prompt-btn" (click)="copyRepairPrompt()">
+          {{ repairCopied ? i18n.t('copied') : i18n.t('wizardStep3RepairBtn') }}
+        </button>
       </div>
 
       <div class="actions-row">
@@ -230,6 +252,8 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
               <button type="button" class="edit-add-link" (click)="addImage(q)">+ {{ i18n.t('wizardStep3bAddImage') }}</button>
             </ng-template>
           </div>
+
+          <div class="image-hint" *ngIf="q.metadata?.imageHint && !q.media">📷 {{ i18n.t('wizardStep3bImageHint') }}: {{ q.metadata?.imageHint }}</div>
         </div>
 
         <button type="button" class="edit-add-question-btn" (click)="addQuestion(pi)">+ {{ i18n.t('wizardStep3bAddQuestion') }}</button>
@@ -318,6 +342,12 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       <a [href]="formUrl" target="_blank" rel="noopener noreferrer" class="open-form-btn btn-primary">
         {{ i18n.t('openForm') }}
       </a>
+      <div class="image-todo" *ngIf="imageHintQuestions().length > 0">
+        <h3>{{ i18n.t('doneImagesTitle') }}</h3>
+        <p>{{ i18n.t('doneImagesDesc') }}</p>
+        <ul><li *ngFor="let h of imageHintQuestions()"><strong>{{ h.n }}.</strong> {{ h.title }} — {{ h.hint }}</li></ul>
+        <a [href]="editUrl" target="_blank" rel="noopener noreferrer" class="btn-ghost">{{ i18n.t('doneEditForm') }}</a>
+      </div>
       <button type="button" class="btn-ghost reset-btn" (click)="resetWizard()">
         {{ i18n.t('wizardReset') }}
       </button>
@@ -595,10 +625,11 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
 
     /* ── Micro-steps timeline ── */
     .micro-steps {
+      list-style: none;
+      padding: 0;
       display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: .35rem;
+      flex-direction: column;
+      gap: .5rem;
       margin: .6rem 0 .25rem;
     }
 
@@ -628,9 +659,68 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       flex-shrink: 0;
     }
 
-    .micro-arrow {
+    .where {
+      display: inline-block;
+      margin-right: .5rem;
+      padding: .1rem .5rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .where-here { background: rgba(88, 166, 255, .15); color: var(--accent); }
+    .where-ai { background: rgba(210, 153, 34, .15); color: #d29922; }
+
+    .open-ai {
+      font-size: .85rem;
       color: var(--text-secondary);
-      font-size: 1rem;
+      margin: .5rem 0;
+    }
+
+    .mode-cards {
+      display: grid;
+      gap: .75rem;
+      margin-top: 1rem;
+    }
+
+    .mode-card {
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+      text-align: left;
+      padding: 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .mode-card:hover { border-color: var(--accent); }
+
+    .result-warn {
+      border: 1px solid #d29922;
+      color: #d29922;
+    }
+
+    .repair-box {
+      margin-top: .75rem;
+      font-size: .88rem;
+      color: var(--text-secondary);
+    }
+
+    .image-hint {
+      margin-top: .5rem;
+      font-size: .82rem;
+      color: #d29922;
+    }
+
+    .image-todo {
+      margin-top: 1.25rem;
+      text-align: left;
+      font-size: .88rem;
+      color: var(--text-secondary);
     }
 
     /* ── Textarea ── */
@@ -1104,29 +1194,26 @@ export class AppComponent implements OnInit {
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly LLM_PROMPT = `Output ONLY raw JSON — no markdown, no explanation. Schema (? = optional):
-
-{
-  "id":"str","title":"str","description":"str",
-  "mode":"form"|"quiz",
-  "settings":{"collectEmails":bool,"limitOneResponse":bool,"shuffleQuestions":bool},
-  "pages":[{
-    "id":"str","title":"str",
-    "questions":[{
-      "id":"str",
-      "type":"text"|"multiple_choice"|"checkbox"|"dropdown"|"true_false"|"short_answer",
-      "title":"str","required":bool,
-      "options?":["str"],
-      "correctAnswer?":"str","score?":1,
-      "media?":{"type":"image"|"video","url":"str"},
-      "metadata?":{"topic?":"str","difficulty?":"easy"|"medium"|"hard"}
-    }]
-  }]
-}
-
-Rules: pages sequential only; options required for multiple_choice/checkbox/dropdown; correctAnswer+score quiz-only; all ids unique. Minify the JSON (no spaces, no newlines). Output ONLY the minified JSON string.`;
-
   formId = '';
+  promptMode: PromptMode | null = null;
+  warnings: NormalizeWarning[] = [];
+  repairProblems: string[] = [];
+  repairCopied = false;
+
+  private readonly WARNING_KEYS: Record<NormalizeWarning, StringKey> = {
+    invalid_media_removed: 'normWarnInvalidMedia',
+    unknown_type_replaced: 'normWarnUnknownType',
+    empty_questions_removed: 'normWarnEmptyQuestions',
+  };
+
+  warningKey(w: NormalizeWarning): StringKey {
+    return this.WARNING_KEYS[w];
+  }
+
+  chooseMode(mode: PromptMode): void {
+    this.promptMode = mode;
+    this.goNext();
+  }
 
   get googleConnected(): boolean {
     return getToken() !== null;
@@ -1185,18 +1272,16 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     }
   }
 
-  private parseDsl(): unknown | null {
-    let cleaned = this.dslJson.trim();
-    // Strip markdown code fences: ```json ... ``` or ``` ... ```
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-
-    try {
-      return JSON.parse(cleaned);
-    } catch {
+  private parseDsl(): Form | null {
+    const result = normalizeDsl(this.dslJson);
+    if (!result.ok) {
       this.errors = [this.i18n.t('invalidJson')];
+      this.repairProblems = ['The reply could not be read as JSON.'];
       this.state = 'error';
       return null;
     }
+    this.warnings = result.warnings;
+    return result.form;
   }
 
   validate(): void {
@@ -1210,9 +1295,10 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
         this.state = 'idle';
         if (res.valid) {
           this.validationOk = true;
-          this.editableForm = payload as Form;
+          this.editableForm = payload;
         } else {
           this.errors = res.errors;
+          this.repairProblems = res.errors;
         }
       },
       error: (err) => {
@@ -1272,10 +1358,35 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
   }
 
   copyPrompt(): void {
-    navigator.clipboard.writeText(this.LLM_PROMPT).then(() => {
+    navigator.clipboard.writeText(buildPrompt(this.promptMode ?? 'generate')).then(() => {
       this.promptCopied = true;
       setTimeout(() => { this.promptCopied = false; }, 2000);
     });
+  }
+
+  copyRepairPrompt(): void {
+    navigator.clipboard.writeText(buildRepairPrompt(this.repairProblems)).then(() => {
+      this.repairCopied = true;
+      setTimeout(() => { this.repairCopied = false; }, 2000);
+    });
+  }
+
+  imageHintQuestions(): { n: number; title: string; hint: string }[] {
+    const out: { n: number; title: string; hint: string }[] = [];
+    let n = 0;
+    for (const page of this.editableForm?.pages ?? []) {
+      for (const q of page.questions) {
+        n++;
+        if (q.metadata?.imageHint && !q.media) {
+          out.push({ n, title: q.title, hint: q.metadata.imageHint });
+        }
+      }
+    }
+    return out;
+  }
+
+  get editUrl(): string {
+    return `https://docs.google.com/forms/d/${this.formId}/edit`;
   }
 
   onPaste(): void {
@@ -1303,6 +1414,8 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     this.dslJson = '';
     this.helpExpanded = false;
     this.editableForm = null;
+    this.promptMode = null;
+    this.formId = '';
     this.reset();
   }
 
@@ -1311,6 +1424,8 @@ Rules: pages sequential only; options required for multiple_choice/checkbox/drop
     this.validationOk = false;
     this.formUrl = '';
     this.serverError = '';
+    this.warnings = [];
+    this.repairProblems = [];
     this.state = 'idle';
   }
 
