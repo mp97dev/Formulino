@@ -37,6 +37,7 @@ export interface Question {
   metadata?: {
     topic?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
+    imageHint?: string;
   };
 }
 

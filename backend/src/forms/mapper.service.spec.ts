@@ -437,4 +437,51 @@ describe('mapDslToGoogleRequests', () => {
     const requests = mapDslToGoogleRequests(form);
     expect(requests[0].createItem?.item.questionItem?.question.grading?.pointValue).toBe(1);
   });
+
+  it('writes imageHint into the item description when there is no media', () => {
+    const form: Form = {
+      ...baseForm,
+      pages: [
+        {
+          id: 'p1',
+          title: 'P',
+          questions: [
+            {
+              id: 'q1',
+              type: 'short_answer',
+              title: 'Area?',
+              required: false,
+              metadata: { imageHint: 'triangolo ABC' },
+            },
+          ],
+        },
+      ],
+    };
+    const [req] = mapDslToGoogleRequests(form);
+    expect(req.createItem?.item.description).toBe('[📷 Figura da inserire: triangolo ABC]');
+  });
+
+  it('ignores imageHint when the question already has media', () => {
+    const form: Form = {
+      ...baseForm,
+      pages: [
+        {
+          id: 'p1',
+          title: 'P',
+          questions: [
+            {
+              id: 'q1',
+              type: 'short_answer',
+              title: 'Area?',
+              required: false,
+              media: { type: 'image', url: 'https://example.com/a.png' },
+              metadata: { imageHint: 'triangolo ABC' },
+            },
+          ],
+        },
+      ],
+    };
+    const [req] = mapDslToGoogleRequests(form);
+    expect(req.createItem?.item.description).toBeUndefined();
+  });
 });

@@ -65,7 +65,8 @@
                   "additionalProperties": false,
                   "properties": {
                     "topic": { "type": "string" },
-                    "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] }
+                    "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+                    "imageHint": { "type": "string", "maxLength": 300 }
                   }
                 }
               },

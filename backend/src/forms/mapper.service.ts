@@ -4,6 +4,7 @@ export interface GoogleFormsRequest {
   createItem?: {
     item: {
       title: string;
+      description?: string;
       itemId?: string;
       questionItem?: {
         question: {
@@ -132,7 +133,13 @@ export function mapDslToGoogleRequests(form: Form): GoogleFormsRequest[] {
     }
 
     for (const question of page.questions) {
-      requests.push(mapQuestion(question, itemIndex, isQuizMode));
+      const questionRequest = mapQuestion(question, itemIndex, isQuizMode);
+      // The Forms API cannot upload images, so when the source needed a figure
+      // we leave a visible marker the teacher can search for and replace.
+      if (question.metadata?.imageHint && !question.media && questionRequest.createItem) {
+        questionRequest.createItem.item.description = `[📷 Figura da inserire: ${question.metadata.imageHint}]`;
+      }
+      requests.push(questionRequest);
       itemIndex++;
 
       if (question.media) {

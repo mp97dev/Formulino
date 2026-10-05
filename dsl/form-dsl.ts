@@ -164,6 +164,8 @@ export interface Question {
      * Difficulty level of question
      */
     difficulty?: "easy" | "medium" | "hard";
+    /** Text describing a figure the teacher must add manually */
+    imageHint?: string;
   };
 }
 

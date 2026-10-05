@@ -110,4 +110,26 @@ describe('DslValidatorService', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('audio') || e.includes('media'))).toBe(true);
   });
+
+  it('accepts metadata.imageHint on a question', () => {
+    const form = {
+      ...validForm,
+      pages: [
+        {
+          id: 'p1',
+          title: 'P',
+          questions: [
+            {
+              id: 'q1',
+              type: 'short_answer',
+              title: 'Area?',
+              required: false,
+              metadata: { imageHint: 'triangolo ABC con lati 3, 4, 5 cm' },
+            },
+          ],
+        },
+      ],
+    };
+    expect(service.validateForm(form).valid).toBe(true);
+  });
 });
