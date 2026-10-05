@@ -423,3 +423,17 @@ The MVP is complete when all of the following are true:
 1. Verify Docker build still passes after changes (run `docker build .`).
 2. Fix the 2 minor items in section 4 (`instanceof` check and missing controller test).
 3. Optionally: verify the full OAuth flow end-to-end against a real Google OAuth app.
+
+---
+
+## 9. Post-MVP: user feedback round 1 (2026-10-05)
+
+Addressed the first user test (plan: `docs/superpowers/plans/2026-10-05-user-feedback-round-1.md`):
+
+- **Unclear copy/paste steps:** step 1 now asks where the questions come from (existing file vs. AI-written); step 2 lists explicit steps tagged "In Formulino" / "Nel tuo AI" with links to ChatGPT, Gemini and Claude.
+- **"Crea form" returned silently from Google login:** returning from OAuth now creates the form automatically (exactly once); the step-4 button shows connect/create state, and tokens older than 55 minutes are treated as expired.
+- **AI output rejected:** a tolerant frontend normalizer (`dsl-normalizer.ts`) repairs fences, double-encoding, smart quotes, missing ids/settings and unknown keys before the strict backend validation; a "repair prompt" can be copied back to the AI when validation still fails.
+- **Extraction from files:** new `extract` prompt (`prompts.ts`) for attached PDFs/images/Word files; it never guesses answer keys.
+- **Figures:** new optional `metadata.imageHint` is shown in the edit step, written to the Google item description as `[📷 Figura da inserire: ...]`, and listed on the done page. Image upload is still out of scope.
+
+Not yet done: manual walkthrough and real-model smoke test (ChatGPT, Gemini, Claude) from Task 6 of the plan.
