@@ -133,3 +133,16 @@ describe('DslValidatorService', () => {
     expect(service.validateForm(form).valid).toBe(true);
   });
 });
+
+describe('DslValidatorService fidelity metadata', () => {
+  it('accepts metadata.fidelity and rejects unknown values', () => {
+    const svc = new DslValidatorService();
+    const base = (fidelity: string) => ({
+      id: 'f', title: 'T', description: '', mode: 'form',
+      settings: { collectEmails: false, limitOneResponse: false, shuffleQuestions: false },
+      pages: [{ id: 'p', title: 'P', questions: [{ id: 'q', type: 'text', title: 'Q', required: false, metadata: { fidelity } }] }],
+    });
+    expect(svc.validateForm(base('interpreted')).valid).toBe(true);
+    expect(svc.validateForm(base('bogus')).valid).toBe(false);
+  });
+});

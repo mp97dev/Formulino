@@ -65,10 +65,12 @@ export class GoogleFormsService {
     const auth = this.buildOAuth2Client(accessToken);
     const formsClient = forms({ version: 'v1', auth });
 
-    // Google Forms API v1 only accepts info.title on initial create.
+    // Google Forms API v1 only accepts info.title and info.documentTitle on
+    // initial create. documentTitle is the name shown in Google Drive; without
+    // it Drive lists the form as "Modulo senza titolo".
     // All other settings must go through batchUpdate after creation.
     const response = await formsClient.forms.create({
-      requestBody: { info: { title } },
+      requestBody: { info: { title, documentTitle: title } },
     });
 
     const formId = response.data.formId;

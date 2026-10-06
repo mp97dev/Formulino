@@ -261,3 +261,21 @@ describe('diagnoseJson', () => {
     expect(diagnoseJson('{"a": nope}')).toMatch(/Invalid JSON syntax/);
   });
 });
+
+describe('fidelity', () => {
+  const mk = (extra: object) => ({
+    title: 'T',
+    pages: [{ title: 'P', questions: [{ type: 'text', title: 'Q', ...extra }] }],
+  });
+  it('keeps a known fidelity without an unknown-key warning', () => {
+    const r = normalizeDsl(JSON.stringify(mk({ fidelity: 'interpreted' })));
+    if (!r.ok) throw new Error('not ok');
+    expect(r.form.pages[0].questions[0].metadata?.fidelity).toBe('interpreted');
+    expect(r.warnings.filter((w) => w.code === 'unknown_keys_removed')).toEqual([]);
+  });
+  it('drops an unknown fidelity value', () => {
+    const r = normalizeDsl(JSON.stringify(mk({ fidelity: 'sure' })));
+    if (!r.ok) throw new Error('not ok');
+    expect(r.form.pages[0].questions[0].metadata?.fidelity).toBeUndefined();
+  });
+});

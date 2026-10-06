@@ -38,6 +38,7 @@ export interface Question {
     topic?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     imageHint?: string;
+    fidelity?: 'literal' | 'interpreted' | 'answer_inferred';
   };
 }
 

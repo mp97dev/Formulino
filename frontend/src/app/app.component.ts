@@ -253,6 +253,8 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
             </ng-template>
           </div>
 
+          <div class="image-hint" *ngIf="q.metadata?.fidelity === 'interpreted'">🔍 {{ i18n.t('fidelityInterpretedBadge') }}</div>
+          <div class="image-hint" *ngIf="q.metadata?.fidelity === 'answer_inferred' && editableForm.mode === 'quiz'">🤖 {{ i18n.t('fidelityInferredBadge') }}</div>
           <div class="image-hint" *ngIf="q.metadata?.imageHint && !q.media">📷 {{ i18n.t('wizardStep3bImageHint') }}: {{ q.metadata?.imageHint }}</div>
         </div>
 
@@ -339,6 +341,12 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
     <div class="step-card done-card" *ngIf="currentStep === 'done'">
       <span class="done-icon" aria-hidden="true">🎉</span>
       <h2>{{ i18n.t('wizardDone') }}</h2>
+      <div class="result result-warn answers-warning" role="alert" *ngIf="editableForm?.mode === 'quiz'">
+        <strong>⚠️ {{ i18n.t('doneAnswersWarnTitle') }}</strong>
+        <p>{{ i18n.t('doneAnswersWarnBody') }}</p>
+        <p *ngIf="fidelityNumbers('answer_inferred').length > 0">🤖 {{ i18n.t('doneFidelityInferred') }}: <strong>{{ fidelityNumbers('answer_inferred').join(', ') }}</strong></p>
+        <p *ngIf="fidelityNumbers('interpreted').length > 0">🔍 {{ i18n.t('doneFidelityInterpreted') }}: <strong>{{ fidelityNumbers('interpreted').join(', ') }}</strong></p>
+      </div>
       <a [href]="formUrl" target="_blank" rel="noopener noreferrer" class="open-form-btn btn-primary">
         {{ i18n.t('openForm') }}
       </a>
@@ -715,6 +723,13 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       font-size: .82rem;
       color: #d29922;
     }
+
+    .answers-warning {
+      text-align: left;
+      margin: 1rem 0;
+      font-size: .95rem;
+    }
+    .answers-warning p { margin: .35rem 0 0; }
 
     .image-todo {
       margin-top: 1.25rem;
@@ -1383,6 +1398,19 @@ export class AppComponent implements OnInit {
       this.repairCopied = true;
       setTimeout(() => { this.repairCopied = false; }, 2000);
     });
+  }
+
+  /** Question numbers (as the user sees them) the AI flagged as not fully trustworthy. */
+  fidelityNumbers(kind: 'interpreted' | 'answer_inferred'): number[] {
+    const out: number[] = [];
+    let n = 0;
+    for (const page of this.editableForm?.pages ?? []) {
+      for (const q of page.questions) {
+        n++;
+        if (q.metadata?.fidelity === kind) out.push(n);
+      }
+    }
+    return out;
   }
 
   imageHintQuestions(): { n: number; title: string; hint: string }[] {

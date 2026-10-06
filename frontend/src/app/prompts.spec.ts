@@ -15,9 +15,10 @@ describe('buildPrompt', () => {
     expect(p).not.toContain('"settings":');
   });
 
-  it('extract: forbids inventing answers and mentions figures and illegible text', () => {
+  it('extract: solves unanswered tests with score 1 and mentions figures and illegible text', () => {
     const p = buildPrompt('extract');
-    expect(p).toContain('NEVER guess');
+    expect(p).toContain('solve each question yourself');
+    expect(p).not.toContain('NEVER guess');
     expect(p).toContain('imageHint');
     expect(p).toContain('[ILLEGGIBILE]');
     expect(p).toContain('attached');

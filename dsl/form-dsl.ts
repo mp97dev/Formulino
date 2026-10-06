@@ -166,6 +166,8 @@ export interface Question {
     difficulty?: "easy" | "medium" | "hard";
     /** Text describing a figure the teacher must add manually */
     imageHint?: string;
+    /** How faithful the AI output is to the source (informational, not sent to Google) */
+    fidelity?: "literal" | "interpreted" | "answer_inferred";
   };
 }
 

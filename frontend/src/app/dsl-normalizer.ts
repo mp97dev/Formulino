@@ -70,11 +70,12 @@ const KEY_ALIASES: Record<string, string> = {
 const FORM_KEYS = ['title', 'description', 'mode', 'pages', 'questions', 'settings', 'id'];
 const PAGE_KEYS = ['title', 'questions', 'id'];
 const QUESTION_KEYS = [
-  'id', 'type', 'title', 'required', 'options', 'correctAnswer', 'score', 'media', 'metadata', 'imageHint',
+  'id', 'type', 'title', 'required', 'options', 'correctAnswer', 'score', 'media', 'metadata', 'imageHint', 'fidelity',
 ];
-const METADATA_KEYS = ['topic', 'difficulty', 'imageHint'];
+const METADATA_KEYS = ['topic', 'difficulty', 'imageHint', 'fidelity'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MAX_IMAGE_HINT = 300;
+const FIDELITIES = ['literal', 'interpreted', 'answer_inferred'] as const;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -273,6 +274,9 @@ function normalizeQuestion(
   }
   const imageHint = str(raw['imageHint']) ?? str(meta['imageHint']);
   if (imageHint) metadata.imageHint = imageHint.slice(0, MAX_IMAGE_HINT);
+  const fidelity = str(raw['fidelity']) ?? str(meta['fidelity']);
+  const knownFidelity = FIDELITIES.find((f) => f === fidelity);
+  if (knownFidelity) metadata.fidelity = knownFidelity;
   if (Object.keys(metadata).length > 0) question.metadata = metadata;
 
   return question;

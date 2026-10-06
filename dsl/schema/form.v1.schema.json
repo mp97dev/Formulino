@@ -66,7 +66,8 @@
                   "properties": {
                     "topic": { "type": "string" },
                     "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
-                    "imageHint": { "type": "string", "maxLength": 300 }
+                    "imageHint": { "type": "string", "maxLength": 300 },
+                    "fidelity": { "type": "string", "enum": ["literal", "interpreted", "answer_inferred"] }
                   }
                 }
               },
