@@ -347,3 +347,12 @@ npm run lint
 - `npm run lint` passes
 - `npm run test` passes
 - CI runs lint + test on push and pull_request
+
+## Versioning
+
+Every commit bumps the patch number in `VERSION` and in `frontend/src/environments/*.ts` via `scripts/bump_version.py`.
+After cloning, enable the hook once with:
+
+```bash
+git config core.hooksPath .githooks
+```

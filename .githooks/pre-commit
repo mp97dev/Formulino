@@ -1,0 +1,3 @@
+#!/bin/sh
+# Bumps the patch version (VERSION + frontend environments) on every commit.
+exec python3 scripts/bump_version.py
