@@ -11,7 +11,7 @@ import { I18nService } from '../services/i18n.service';
     <main class="privacy">
       @if (i18n.lang() === 'it') {
         <h1>Informativa sulla privacy</h1>
-        <p class="updated">Ultimo aggiornamento: 7 settembre 2026</p>
+        <p class="updated">Ultimo aggiornamento: 6 ottobre 2026</p>
 
         <section>
           <h2>Titolare del trattamento</h2>
@@ -34,6 +34,7 @@ import { I18nService } from '../services/i18n.service';
           <ul>
             <li><strong>Token di accesso OAuth</strong> — dopo l'autorizzazione, Google emette un token di accesso di breve durata. È consegnato al browser tramite frammento URL (la parte <code>#…</code> dell'indirizzo), che i browser non trasmettono né registrano nei log dei server. È salvato nel <code>sessionStorage</code> del browser per la durata della scheda e cancellato alla chiusura. È inviato al nostro server solo nell'header <code>Authorization</code> al momento della creazione del form e non viene registrato né conservato lato server. <em>Finalità:</em> creare il Google Form richiesto. <em>Base giuridica:</em> esecuzione di un servizio richiesto dall'utente (art. 6.1.b GDPR).</li>
             <li><strong>Contenuto JSON del form</strong> — il JSON incollato nell'editor è inviato al nostro server esclusivamente per creare il form tramite l'API di Google Forms. Non viene registrato né conservato dopo la chiamata. <em>Finalità/base giuridica:</em> come sopra.</li>
+            <li><strong>Contatore anonimo dei form creati</strong> — a ogni form creato con successo salviamo sul server solo la data (giorno, senza ora) in un semplice file di testo, per mostrare nel sito quanti form sono stati creati. Non è collegato a utenti, account Google, indirizzi IP, token o contenuti del form e non consente di identificare nessuno. <em>Finalità:</em> statistiche aggregate di utilizzo. <em>Base giuridica:</em> legittimo interesse (art. 6.1.f GDPR) su dati non personali.</li>
           </ul>
         </section>
 
@@ -41,7 +42,7 @@ import { I18nService } from '../services/i18n.service';
           <h2>Dati che NON raccogliamo</h2>
           <ul>
             <li>Non conserviamo le tue credenziali Google né i token OAuth in modo persistente.</li>
-            <li>Non tracciamo l'utilizzo con strumenti di analytics e non vendiamo alcun dato a terzi.</li>
+            <li>Non tracciamo l'utilizzo con strumenti di analytics (l'unico dato di utilizzo è il contatore anonimo dei form creati, composto da sole date) e non vendiamo alcun dato a terzi.</li>
             <li>Non conserviamo il JSON o il contenuto del form dopo il completamento della chiamata API.</li>
             <li>Non effettuiamo profilazione né processi decisionali automatizzati.</li>
             <li>Non richiediamo a Google alcuna informazione identificativa (nome, email, foto profilo): l'accesso richiede al tuo account Google esclusivamente il permesso di creare form (scope <code>forms.body</code>), in linea con il principio di minimizzazione dei dati (art. 5.1.c GDPR).</li>
@@ -157,7 +158,7 @@ import { I18nService } from '../services/i18n.service';
         </section>
       } @else {
         <h1>Privacy Policy</h1>
-        <p class="updated">Last updated: September 7, 2026</p>
+        <p class="updated">Last updated: October 6, 2026</p>
 
         <section>
           <h2>Data Controller</h2>
@@ -180,6 +181,7 @@ import { I18nService } from '../services/i18n.service';
           <ul>
             <li><strong>OAuth access token</strong> — after you authorise Formulino, Google issues a short-lived access token. It is delivered to your browser via a URL fragment (the <code>#…</code> part of the address bar), which browsers never transmit to servers or record in server logs. The token is stored in your browser's <code>sessionStorage</code> for the duration of your tab session and cleared when the tab is closed. It is sent to our server only inside the <code>Authorization</code> request header when creating a form, and is not logged or stored server-side. <em>Purpose:</em> create the Google Form you requested. <em>Legal basis:</em> performance of a service explicitly requested by you (GDPR Art. 6(1)(b)).</li>
             <li><strong>JSON form content</strong> — the JSON you paste into the editor is sent to our server only to create the form via the Google Forms API. It is not logged or stored after the call completes. <em>Purpose/legal basis:</em> as above.</li>
+            <li><strong>Anonymous created-forms counter</strong> — each time a form is successfully created we store only the date (day, no time) in a plain text file on the server, to show on the site how many forms have been created. It is not linked to users, Google accounts, IP addresses, tokens or form content and cannot identify anyone. <em>Purpose:</em> aggregate usage statistics. <em>Legal basis:</em> legitimate interest (GDPR Art. 6(1)(f)) on non-personal data.</li>
           </ul>
         </section>
 
@@ -187,7 +189,7 @@ import { I18nService } from '../services/i18n.service';
           <h2>Data we do NOT collect</h2>
           <ul>
             <li>We do not store your Google credentials or OAuth tokens persistently.</li>
-            <li>We do not track usage analytics or sell any data to third parties.</li>
+            <li>We do not use analytics tools (the only usage data is the anonymous created-forms counter, made of dates only) and do not sell any data to third parties.</li>
             <li>We do not retain the JSON or form content after the API call completes.</li>
             <li>We do not perform profiling or automated decision-making.</li>
             <li>We do not request any identifying information from Google (name, email, profile photo): sign-in only requests permission to create forms in your account (the <code>forms.body</code> scope), in line with the data-minimisation principle (GDPR Art. 5(1)(c)).</li>
