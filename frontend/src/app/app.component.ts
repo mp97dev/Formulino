@@ -15,6 +15,21 @@ type WizardStep = 'step1' | 'step2' | 'step3' | 'step3b' | 'step4' | 'done';
 
 const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 'done'];
 
+/** Copy of the form without the "figure missing" hints, so no note is written into the Google Form. */
+export function withoutImageNotes(form: Form): Form {
+  return {
+    ...form,
+    pages: form.pages.map((p) => ({
+      ...p,
+      questions: p.questions.map((q) => {
+        if (!q.metadata?.imageHint) return q;
+        const { imageHint: _omit, ...metadata } = q.metadata;
+        return { ...q, metadata };
+      }),
+    })),
+  };
+}
+
 @Component({
   selector: 'app-main',
   standalone: true,
@@ -320,6 +335,11 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
           </div>
         </div>
       </details>
+
+      <label class="skip-image-notes" *ngIf="imageHintQuestions().length > 0">
+        <input type="checkbox" [(ngModel)]="skipImageNotes" name="skipImageNotes" />
+        <span>{{ i18n.t('skipImageNotes') }}</span>
+      </label>
 
       <p class="google-status" [class.connected]="googleConnected">
         {{ googleConnected ? '✓ ' + i18n.t('wizardStep4Connected') : i18n.t('wizardStep4WillRedirect') }}
@@ -723,6 +743,17 @@ const STEP_ORDER: WizardStep[] = ['step1', 'step2', 'step3', 'step3b', 'step4', 
       font-size: .82rem;
       color: #d29922;
     }
+
+    .skip-image-notes {
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+      margin: 1rem 0;
+      font-size: .9rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .skip-image-notes input { margin-top: .2rem; }
 
     .answers-warning {
       text-align: left;
@@ -1196,6 +1227,7 @@ export class AppComponent implements OnInit {
   currentStep: WizardStep = 'step1';
   helpExpanded = false;
   editableForm: Form | null = null;
+  skipImageNotes = false;
 
   // t() is typed against literal string keys, so a computed 'faqQ' + n would not
   // typecheck — use an explicit array of key pairs instead.
@@ -1339,8 +1371,9 @@ export class AppComponent implements OnInit {
 
   create(): void {
     this.reset();
-    const payload = this.editableForm ?? this.parseDsl();
-    if (!payload) return;
+    const parsed = this.editableForm ?? this.parseDsl();
+    if (!parsed) return;
+    const payload = this.skipImageNotes ? withoutImageNotes(parsed) : parsed;
 
     const token = getToken();
     if (!token) {
@@ -1456,6 +1489,7 @@ export class AppComponent implements OnInit {
     this.dslJson = '';
     this.helpExpanded = false;
     this.editableForm = null;
+    this.skipImageNotes = false;
     this.promptMode = null;
     this.formId = '';
     this.reset();

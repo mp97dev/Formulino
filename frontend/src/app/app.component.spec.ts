@@ -1,6 +1,6 @@
 import { of, throwError } from 'rxjs';
 import { Title } from '@angular/platform-browser';
-import { AppComponent } from './app.component';
+import { AppComponent, withoutImageNotes } from './app.component';
 import { FormsService } from './services/forms.service';
 import { I18nService } from './services/i18n.service';
 
@@ -399,5 +399,22 @@ describe('AppComponent', () => {
       comp.formId = 'abc';
       expect(comp.editUrl).toBe('https://docs.google.com/forms/d/abc/edit');
     });
+  });
+});
+
+describe('withoutImageNotes', () => {
+  it('drops imageHint but keeps other metadata and does not mutate the input', () => {
+    const form = {
+      id: 'f', title: 'T', description: '', mode: 'form' as const,
+      settings: { collectEmails: false, limitOneResponse: false, shuffleQuestions: false },
+      pages: [{ id: 'p', title: 'P', questions: [
+        { id: 'q1', type: 'text' as const, title: 'A', required: false, metadata: { imageHint: 'x', topic: 't' } },
+        { id: 'q2', type: 'text' as const, title: 'B', required: false },
+      ] }],
+    };
+    const out = withoutImageNotes(form);
+    expect(out.pages[0].questions[0].metadata).toEqual({ topic: 't' });
+    expect(out.pages[0].questions[1]).toBe(form.pages[0].questions[1]);
+    expect(form.pages[0].questions[0].metadata?.imageHint).toBe('x');
   });
 });
