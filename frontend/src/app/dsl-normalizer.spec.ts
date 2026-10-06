@@ -279,3 +279,18 @@ describe('fidelity', () => {
     expect(r.form.pages[0].questions[0].metadata?.fidelity).toBeUndefined();
   });
 });
+
+describe('shuffle default', () => {
+  it('is on for choice questions only', () => {
+    const r = normalizeDsl(JSON.stringify({
+      title: 'T',
+      pages: [{ title: 'P', questions: [
+        { type: 'multiple_choice', title: 'A', options: ['x', 'y'] },
+        { type: 'true_false', title: 'B', options: ['Vero', 'Falso'] },
+        { type: 'short_answer', title: 'C' },
+      ] }],
+    }));
+    if (!r.ok) throw new Error('not ok');
+    expect(r.form.pages[0].questions.map((q) => q.shuffle)).toEqual([true, undefined, undefined]);
+  });
+});

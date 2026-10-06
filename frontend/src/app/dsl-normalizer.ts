@@ -238,6 +238,9 @@ function normalizeQuestion(
     warnings.push({ code: 'options_removed', n, from: type });
   }
 
+  // Shuffling answers is the default for choice questions; the teacher can switch it off in the editor.
+  if (type === 'multiple_choice' || type === 'checkbox' || type === 'dropdown') question.shuffle = true;
+
   const correctAnswer = str(raw['correctAnswer']);
   if (correctAnswer) {
     if (question.options) {

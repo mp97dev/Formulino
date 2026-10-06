@@ -1552,8 +1552,10 @@ export class AppComponent implements OnInit {
   onTypeChange(q: Question): void {
     if (this.hasOptions(q)) {
       if (!q.options || q.options.length === 0) q.options = [''];
+      q.shuffle ??= true;
     } else {
       delete q.options;
+      delete q.shuffle;
       delete q.correctAnswer;
     }
   }
