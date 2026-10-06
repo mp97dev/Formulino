@@ -2,7 +2,10 @@ import { UnauthorizedException, UnprocessableEntityException } from '@nestjs/com
 import { FormsController } from './forms.controller';
 import { DslValidatorService } from './dsl-validator.service';
 import { GoogleFormsService } from './google-forms.service';
+import { StatsService } from '../stats/stats.service';
 import type { Form } from './dsl-types';
+
+const stats = { record: jest.fn().mockResolvedValue(undefined) } as unknown as StatsService;
 
 const quizForm: Form = {
   id: 'f1',
@@ -40,7 +43,7 @@ function makeServices(overrides: Partial<GoogleFormsService> = {}) {
 describe('FormsController.create', () => {
   it('throws UnauthorizedException when Authorization header is missing', async () => {
     const { validator, googleForms } = makeServices();
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await expect(controller.create(quizForm, '')).rejects.toThrow(UnauthorizedException);
   });
 
@@ -49,13 +52,13 @@ describe('FormsController.create', () => {
     const validator = {
       validateForm: jest.fn().mockReturnValue({ valid: false, errors: ['bad payload'] }),
     } as unknown as DslValidatorService;
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await expect(controller.create({}, 'Bearer tok')).rejects.toThrow(UnprocessableEntityException);
   });
 
   it('returns formId and formUrl on success', async () => {
     const { validator, googleForms } = makeServices();
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     const result = await controller.create(quizForm, 'Bearer tok');
     expect(result.formId).toBe('form-123');
     expect(result.formUrl).toBe('https://example.com');
@@ -71,7 +74,7 @@ describe('FormsController.create', () => {
       batchUpdate: jest.fn().mockImplementation(async () => { callOrder.push('batchUpdate'); }),
     } as unknown as GoogleFormsService;
 
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await controller.create(quizForm, 'Bearer tok');
 
     expect(callOrder).toEqual(['patchFormSettings', 'batchUpdate']);
@@ -79,7 +82,7 @@ describe('FormsController.create', () => {
 
   it('quiz mode: patchFormSettings is called with isQuiz=true', async () => {
     const { validator, googleForms } = makeServices();
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await controller.create(quizForm, 'Bearer tok');
 
     expect(googleForms.patchFormSettings).toHaveBeenCalledWith(
@@ -93,7 +96,7 @@ describe('FormsController.create', () => {
   it('regular form: patchFormSettings is called with isQuiz=false', async () => {
     const regularForm: Form = { ...quizForm, mode: 'form' };
     const { validator, googleForms } = makeServices();
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await controller.create(regularForm, 'Bearer tok');
 
     expect(googleForms.patchFormSettings).toHaveBeenCalledWith(
@@ -114,7 +117,7 @@ describe('FormsController.create', () => {
       batchUpdate: jest.fn().mockResolvedValue(undefined),
     } as unknown as GoogleFormsService;
 
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
     await controller.create(quizForm, 'Bearer tok');
 
     expect(callOrder).toEqual(['verifyTokenAudience', 'createForm']);
@@ -126,7 +129,7 @@ describe('FormsController.create', () => {
         new UnauthorizedException('Access token was not issued for this application'),
       ),
     });
-    const controller = new FormsController(validator, googleForms);
+    const controller = new FormsController(validator, googleForms, stats);
 
     await expect(controller.create(quizForm, 'Bearer tok')).rejects.toThrow(UnauthorizedException);
     expect(googleForms.createForm).not.toHaveBeenCalled();
@@ -175,5 +178,24 @@ describe('GoogleFormsService.verifyTokenAudience', () => {
 
     const service = new GoogleFormsService();
     await expect(service.verifyTokenAudience('tok')).resolves.toBeUndefined();
+  });
+});
+
+describe('FormsController.create stats', () => {
+  it('records the creation only after the form was built', async () => {
+    const { validator, googleForms } = makeServices();
+    const record = jest.fn().mockResolvedValue(undefined);
+    const controller = new FormsController(validator, googleForms, { record } as unknown as StatsService);
+    await controller.create(quizForm, 'Bearer tok');
+    expect(record).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not record when creation fails', async () => {
+    const { validator } = makeServices();
+    const googleForms = makeServices({ batchUpdate: jest.fn().mockRejectedValue(new Error('x')) }).googleForms;
+    const record = jest.fn();
+    const controller = new FormsController(validator, googleForms, { record } as unknown as StatsService);
+    await expect(controller.create(quizForm, 'Bearer tok')).rejects.toThrow('x');
+    expect(record).not.toHaveBeenCalled();
   });
 });

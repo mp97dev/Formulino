@@ -12,6 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { DslValidatorService } from './dsl-validator.service';
 import { GoogleFormsService } from './google-forms.service';
 import { mapDslToGoogleRequests } from './mapper.service';
+import { StatsService } from '../stats/stats.service';
 import type { Form } from './dsl-types';
 
 @ApiTags('forms')
@@ -20,6 +21,7 @@ export class FormsController {
   constructor(
     private readonly validator: DslValidatorService,
     private readonly googleForms: GoogleFormsService,
+    private readonly stats: StatsService,
   ) {}
 
   @Post('validate')
@@ -67,6 +69,7 @@ export class FormsController {
 
     const requests = mapDslToGoogleRequests(form);
     await this.googleForms.batchUpdate(accessToken, formId, requests);
+    await this.stats.record();
 
     return { formId, formUrl };
   }

@@ -226,3 +226,11 @@ The NestJS backend failed to start. Check Railway's deployment logs:
 While the OAuth consent screen is in **Testing** status, only accounts listed
 under **Test users** can log in. Add the Google account you are testing with,
 or publish the app (requires Google verification for sensitive scopes).
+
+## Contatore "form creati"
+
+Il backend salva una data (`YYYY-MM-DD`) per riga in un file di testo ogni volta che un form viene creato; nessun dato su utenti, form o token. Il totale e l'ultima settimana sono esposti da `GET /api/stats` e mostrati sopra il footer.
+
+- `STATS_FILE`: percorso del file (default `./data/created-forms.log`).
+- Il filesystem del container è effimero: per non azzerare il contatore a ogni deploy, monta un Volume Railway (es. su `/data`) e imposta `STATS_FILE=/data/created-forms.log`.
+- Se il file non è scrivibile il conteggio resta in memoria e la creazione dei form non è affetta.
