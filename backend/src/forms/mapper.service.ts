@@ -80,7 +80,7 @@ function mapQuestion(
               choiceQuestion: {
                 type: choiceType,
                 options: mappedOptions,
-                shuffle: false,
+                shuffle: question.shuffle === true,
               },
               ...(grading ? { grading } : {}),
             },

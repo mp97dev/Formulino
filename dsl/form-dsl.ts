@@ -137,6 +137,9 @@ export interface Question {
    */
   correctAnswer?: string;
 
+  /** Shuffle the order of the options for each respondent (choice questions only) */
+  shuffle?: boolean;
+
   /**
    * Score assigned if answer is correct
    * Default = 1 if not provided

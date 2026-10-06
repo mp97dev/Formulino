@@ -50,6 +50,7 @@
                   "minItems": 1
                 },
                 "correctAnswer": { "type": "string" },
+                "shuffle": { "type": "boolean" },
                 "score": { "type": "number", "minimum": 0 },
                 "media": {
                   "type": "object",

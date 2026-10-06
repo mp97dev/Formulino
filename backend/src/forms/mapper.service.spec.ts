@@ -485,3 +485,19 @@ describe('mapDslToGoogleRequests', () => {
     expect(req.createItem?.item.description).toBeUndefined();
   });
 });
+
+describe('mapDslToGoogleRequests shuffle', () => {
+  const choice = (shuffle?: boolean): Form => ({
+    ...baseForm,
+    pages: [{ id: 'p', title: 'P', questions: [
+      { id: 'q', type: 'multiple_choice', title: 'C?', required: false, options: ['A', 'B'], ...(shuffle === undefined ? {} : { shuffle }) },
+    ] }],
+  });
+  const flag = (f: Form) => mapDslToGoogleRequests(f)[0].createItem?.item.questionItem?.question.choiceQuestion?.shuffle;
+
+  it('defaults to false, honours shuffle: true', () => {
+    expect(flag(choice())).toBe(false);
+    expect(flag(choice(false))).toBe(false);
+    expect(flag(choice(true))).toBe(true);
+  });
+});

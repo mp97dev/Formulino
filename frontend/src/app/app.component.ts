@@ -202,6 +202,11 @@ export function withoutImageNotes(form: Form): Form {
       <h2>{{ i18n.t('wizardStep3bTitle') }}</h2>
       <p class="step-desc">{{ i18n.t('wizardStep3bDesc') }}</p>
 
+      <label class="edit-checkbox shuffle-all" *ngIf="hasShuffleableQuestions()">
+        <input type="checkbox" [checked]="allShuffled()" (change)="setShuffleAll($any($event.target).checked)" name="shuffleAll" />
+        {{ i18n.t('wizardStep3bShuffleAll') }}
+      </label>
+
       <div class="edit-page" *ngFor="let page of editableForm.pages; let pi = index">
         <h3 class="edit-page-title" *ngIf="editableForm.pages.length > 1">{{ page.title }}</h3>
 
@@ -237,6 +242,11 @@ export function withoutImageNotes(form: Form): Form {
               {{ i18n.t('wizardStep3bRequired') }}
             </label>
           </div>
+
+          <label class="edit-checkbox" *ngIf="hasOptions(q)">
+            <input type="checkbox" [(ngModel)]="q.shuffle" [name]="'qshuffle-' + pi + '-' + qi" />
+            {{ i18n.t('wizardStep3bShuffle') }}
+          </label>
 
           <div class="edit-options" *ngIf="hasOptions(q)">
             <div class="edit-option-row" *ngFor="let opt of q.options; let oi = index">
@@ -743,6 +753,8 @@ export function withoutImageNotes(form: Form): Form {
       font-size: .82rem;
       color: #d29922;
     }
+
+    .shuffle-all { margin: .5rem 0 1rem; }
 
     .skip-image-notes {
       display: flex;
@@ -1514,6 +1526,23 @@ export class AppComponent implements OnInit {
       n += this.editableForm.pages[i].questions.length;
     }
     return n + 1;
+  }
+
+  private shuffleableQuestions(): Question[] {
+    return (this.editableForm?.pages ?? []).flatMap((p) => p.questions).filter((q) => this.hasOptions(q));
+  }
+
+  hasShuffleableQuestions(): boolean {
+    return this.shuffleableQuestions().length > 0;
+  }
+
+  allShuffled(): boolean {
+    const qs = this.shuffleableQuestions();
+    return qs.length > 0 && qs.every((q) => q.shuffle === true);
+  }
+
+  setShuffleAll(on: boolean): void {
+    this.shuffleableQuestions().forEach((q) => (q.shuffle = on));
   }
 
   hasOptions(q: Question): boolean {

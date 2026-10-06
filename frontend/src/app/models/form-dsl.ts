@@ -31,6 +31,8 @@ export interface Question {
   required: boolean;
   options?: string[];
   correctAnswer?: string;
+  /** Shuffle the order of the options for each respondent (choice questions only) */
+  shuffle?: boolean;
   score?: number;
   media?: Media;
   metadata?: {
