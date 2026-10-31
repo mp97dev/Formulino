@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import { NgIf } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { I18nService } from './services/i18n.service';
 import { StatsService } from './services/stats.service';
@@ -8,7 +7,7 @@ import { environment } from '../environments/environment';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, NgIf],
+  imports: [RouterOutlet, RouterLink],
   template: `
     <span class="blob blob-1" aria-hidden="true"></span>
     <span class="blob blob-2" aria-hidden="true"></span>
@@ -23,9 +22,11 @@ import { environment } from '../environments/environment';
       </button>
     </header>
     <router-outlet />
-    <p class="stats-line" *ngIf="statsService.stats() as s">
-      {{ s.total > 0 ? i18n.tp('statsLine', { total: s.total, week: s.last7Days }) : '' }}
-    </p>
+    @if (statsService.stats(); as s) {
+      <p class="stats-line">
+        {{ s.total > 0 ? i18n.tp('statsLine', { total: s.total, week: s.last7Days }) : '' }}
+      </p>
+    }
     <footer class="app-footer">
       <a routerLink="/privacy">{{ i18n.lang() === 'it' ? 'Informativa sulla privacy' : 'Privacy Policy' }}</a>
       <span class="footer-sep">·</span>

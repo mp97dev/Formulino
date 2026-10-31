@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
 import { FormsService } from './services/forms.service';
@@ -33,364 +33,409 @@ export function withoutImageNotes(form: Form): Form {
 @Component({
   selector: 'app-main',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <section class="hero">
       <h1 class="hero-title">{{ i18n.t('appName') }}</h1>
       <p class="hero-tagline">{{ i18n.t('appTagline') }}</p>
       <p class="hero-desc">{{ i18n.t('appDesc') }}</p>
     </section>
-
+    
     <!-- Progress bar -->
-    <nav class="wizard-progress" aria-label="Progresso" *ngIf="currentStep !== 'done'">
-      <div class="wp-step" [class.active]="currentStep === 'step1'" [class.done]="isStepDone('step1')">
-        <div class="wp-dot">{{ isStepDone('step1') ? '✓' : '1' }}</div>
-        <div class="wp-label">{{ i18n.t('wpLabel1') }}</div>
-      </div>
-      <div class="wp-line" [class.done]="isStepDone('step1')"></div>
-      <div class="wp-step" [class.active]="currentStep === 'step2'" [class.done]="isStepDone('step2')">
-        <div class="wp-dot">{{ isStepDone('step2') ? '✓' : '2' }}</div>
-        <div class="wp-label">{{ i18n.t('wpLabel2') }}</div>
-      </div>
-      <div class="wp-line" [class.done]="isStepDone('step2')"></div>
-      <div class="wp-step" [class.active]="currentStep === 'step3'" [class.done]="isStepDone('step3')">
-        <div class="wp-dot">{{ isStepDone('step3') ? '✓' : '3' }}</div>
-        <div class="wp-label">{{ i18n.t('wpLabel3') }}</div>
-      </div>
-      <div class="wp-line" [class.done]="isStepDone('step3')"></div>
-      <div class="wp-step" [class.active]="currentStep === 'step3b'" [class.done]="isStepDone('step3b')">
-        <div class="wp-dot">{{ isStepDone('step3b') ? '✓' : '4' }}</div>
-        <div class="wp-label">{{ i18n.t('wpLabel3b') }}</div>
-      </div>
-      <div class="wp-line" [class.done]="isStepDone('step3b')"></div>
-      <div class="wp-step" [class.active]="currentStep === 'step4'" [class.done]="isStepDone('step4')">
-        <div class="wp-dot">{{ isStepDone('step4') ? '✓' : '5' }}</div>
-        <div class="wp-label">{{ i18n.t('wpLabel4') }}</div>
-      </div>
-    </nav>
-
+    @if (currentStep !== 'done') {
+      <nav class="wizard-progress" aria-label="Progresso">
+        <div class="wp-step" [class.active]="currentStep === 'step1'" [class.done]="isStepDone('step1')">
+          <div class="wp-dot">{{ isStepDone('step1') ? '✓' : '1' }}</div>
+          <div class="wp-label">{{ i18n.t('wpLabel1') }}</div>
+        </div>
+        <div class="wp-line" [class.done]="isStepDone('step1')"></div>
+        <div class="wp-step" [class.active]="currentStep === 'step2'" [class.done]="isStepDone('step2')">
+          <div class="wp-dot">{{ isStepDone('step2') ? '✓' : '2' }}</div>
+          <div class="wp-label">{{ i18n.t('wpLabel2') }}</div>
+        </div>
+        <div class="wp-line" [class.done]="isStepDone('step2')"></div>
+        <div class="wp-step" [class.active]="currentStep === 'step3'" [class.done]="isStepDone('step3')">
+          <div class="wp-dot">{{ isStepDone('step3') ? '✓' : '3' }}</div>
+          <div class="wp-label">{{ i18n.t('wpLabel3') }}</div>
+        </div>
+        <div class="wp-line" [class.done]="isStepDone('step3')"></div>
+        <div class="wp-step" [class.active]="currentStep === 'step3b'" [class.done]="isStepDone('step3b')">
+          <div class="wp-dot">{{ isStepDone('step3b') ? '✓' : '4' }}</div>
+          <div class="wp-label">{{ i18n.t('wpLabel3b') }}</div>
+        </div>
+        <div class="wp-line" [class.done]="isStepDone('step3b')"></div>
+        <div class="wp-step" [class.active]="currentStep === 'step4'" [class.done]="isStepDone('step4')">
+          <div class="wp-dot">{{ isStepDone('step4') ? '✓' : '5' }}</div>
+          <div class="wp-label">{{ i18n.t('wpLabel4') }}</div>
+        </div>
+      </nav>
+    }
+    
     <!-- ═══════════════ STEP 1 ═══════════════ -->
-    <div class="step-card" *ngIf="currentStep === 'step1'">
-      <p class="step-badge">{{ i18n.t('wizardBadge1') }}</p>
-      <h2>{{ i18n.t('wizardStep1Title') }}</h2>
-      <p class="step-desc">{{ i18n.t('wizardStep1Desc') }}</p>
-
-      <div class="ai-chat-mockup" aria-hidden="true">
-        <div class="chat-titlebar">
-          <span class="chat-dot red"></span>
-          <span class="chat-dot yellow"></span>
-          <span class="chat-dot green"></span>
-          <span class="chat-app-name">ChatGPT · Gemini · Claude</span>
+    @if (currentStep === 'step1') {
+      <div class="step-card">
+        <p class="step-badge">{{ i18n.t('wizardBadge1') }}</p>
+        <h2>{{ i18n.t('wizardStep1Title') }}</h2>
+        <p class="step-desc">{{ i18n.t('wizardStep1Desc') }}</p>
+        <div class="ai-chat-mockup" aria-hidden="true">
+          <div class="chat-titlebar">
+            <span class="chat-dot red"></span>
+            <span class="chat-dot yellow"></span>
+            <span class="chat-dot green"></span>
+            <span class="chat-app-name">ChatGPT · Gemini · Claude</span>
+          </div>
+          <div class="chat-messages">
+            <div class="chat-bubble user">{{ i18n.t('chatExUser') }}</div>
+            <div class="chat-bubble ai">{{ i18n.t('chatExAi') }}</div>
+          </div>
         </div>
-        <div class="chat-messages">
-          <div class="chat-bubble user">{{ i18n.t('chatExUser') }}</div>
-          <div class="chat-bubble ai">{{ i18n.t('chatExAi') }}</div>
+        <button type="button" class="help-toggle" (click)="helpExpanded = !helpExpanded">
+          {{ helpExpanded ? '▲' : '▼' }} {{ i18n.t('wizardStep1Help') }}
+        </button>
+        @if (helpExpanded) {
+          <div class="help-content">
+            <p>{{ i18n.t('wizardStep1HelpPrompt') }}</p>
+            <div class="help-example">"{{ i18n.t('wizardStep1HelpExample') }}"</div>
+          </div>
+        }
+        <div class="mode-cards">
+          <button type="button" class="mode-card" (click)="chooseMode('extract')">
+            <span class="mode-icon" aria-hidden="true">📄</span>
+            <strong>{{ i18n.t('wizardStep1OptFile') }}</strong>
+            <span>{{ i18n.t('wizardStep1OptFileDesc') }}</span>
+          </button>
+          <button type="button" class="mode-card" (click)="chooseMode('generate')">
+            <span class="mode-icon" aria-hidden="true">✨</span>
+            <strong>{{ i18n.t('wizardStep1OptNew') }}</strong>
+            <span>{{ i18n.t('wizardStep1OptNewDesc') }}</span>
+          </button>
         </div>
       </div>
-
-      <button type="button" class="help-toggle" (click)="helpExpanded = !helpExpanded">
-        {{ helpExpanded ? '▲' : '▼' }} {{ i18n.t('wizardStep1Help') }}
-      </button>
-      <div class="help-content" *ngIf="helpExpanded">
-        <p>{{ i18n.t('wizardStep1HelpPrompt') }}</p>
-        <div class="help-example">"{{ i18n.t('wizardStep1HelpExample') }}"</div>
-      </div>
-
-      <div class="mode-cards">
-        <button type="button" class="mode-card" (click)="chooseMode('extract')">
-          <span class="mode-icon" aria-hidden="true">📄</span>
-          <strong>{{ i18n.t('wizardStep1OptFile') }}</strong>
-          <span>{{ i18n.t('wizardStep1OptFileDesc') }}</span>
-        </button>
-        <button type="button" class="mode-card" (click)="chooseMode('generate')">
-          <span class="mode-icon" aria-hidden="true">✨</span>
-          <strong>{{ i18n.t('wizardStep1OptNew') }}</strong>
-          <span>{{ i18n.t('wizardStep1OptNewDesc') }}</span>
-        </button>
-      </div>
-    </div>
-
+    }
+    
     <!-- ═══════════════ FAQ (step 1 only) ═══════════════ -->
-    <section class="faq" *ngIf="currentStep === 'step1'">
-      <h2 class="faq-title">{{ i18n.t('faqTitle') }}</h2>
-      <details class="faq-item" *ngFor="let faq of faqItems">
-        <summary>{{ i18n.t(faq.q) }}</summary>
-        <p>{{ i18n.t(faq.a) }}</p>
-      </details>
-    </section>
-
+    @if (currentStep === 'step1') {
+      <section class="faq">
+        <h2 class="faq-title">{{ i18n.t('faqTitle') }}</h2>
+        @for (faq of faqItems; track faq) {
+          <details class="faq-item">
+            <summary>{{ i18n.t(faq.q) }}</summary>
+            <p>{{ i18n.t(faq.a) }}</p>
+          </details>
+        }
+      </section>
+    }
+    
     <!-- ═══════════════ STEP 2 ═══════════════ -->
-    <div class="step-card" *ngIf="currentStep === 'step2'">
-      <p class="step-badge">{{ i18n.t('wizardBadge2') }}</p>
-      <h2>{{ i18n.t('wizardStep2Title') }}</h2>
-      <p class="step-desc">{{ promptMode === 'extract' ? i18n.t('wizardStep2DescFile') : i18n.t('wizardStep2DescNew') }}</p>
-
-      <ol class="micro-steps">
-        <li class="micro-step"><span class="where where-here">{{ i18n.t('wizardWhereHere') }}</span>{{ i18n.t('wizardStep2Sub1') }}</li>
-        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ promptMode === 'extract' ? i18n.t('wizardStep2Sub2File') : i18n.t('wizardStep2Sub2New') }}</li>
-        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub3') }}</li>
-        <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub4') }}</li>
-      </ol>
-      <p class="open-ai">{{ i18n.t('wizardOpenAi') }}
-        <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">ChatGPT</a> ·
-        <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer">Gemini</a> ·
-        <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Claude</a></p>
-
-      <button type="button" class="copy-prompt-btn" (click)="copyPrompt()">
-        {{ promptCopied ? i18n.t('copied') : i18n.t('copyPrompt') }}
-      </button>
-
-      <div class="actions-row">
-        <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
-        <button type="button" class="btn-primary step-cta-inline" (click)="goNext()">
-          {{ i18n.t('wizardStep2Cta') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- ═══════════════ STEP 3 ═══════════════ -->
-    <div class="step-card" *ngIf="currentStep === 'step3'">
-      <p class="step-badge">{{ i18n.t('wizardBadge3') }}</p>
-      <h2>{{ i18n.t('wizardStep3Title') }}</h2>
-      <p class="step-desc">{{ i18n.t('wizardStep3Desc') }}</p>
-
-      <textarea
-        [(ngModel)]="dslJson"
-        rows="7"
-        [placeholder]="i18n.t('wizardStep3Placeholder')"
-        [disabled]="isWorking"
-        (paste)="onPaste()"
-      ></textarea>
-
-      <div class="result result-valid" *ngIf="validationOk">
-        <strong>✓ {{ i18n.t('wizardStep3Ok') }}</strong>
-      </div>
-      <div class="result result-error" *ngIf="errors.length > 0">
-        <strong>{{ i18n.t('wizardStep3ErrHint') }}</strong>
-        <ul>
-          <li *ngFor="let e of errors">{{ e }}</li>
-        </ul>
-      </div>
-      <div class="result result-error" *ngIf="serverError && !errors.length">
-        <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
-      </div>
-      <div class="result result-warn" *ngIf="warnings.length > 0">
-        <strong>{{ i18n.t('wizardStep3Fixed') }}</strong>
-        <ul><li *ngFor="let w of warnings">{{ warningText(w) }}</li></ul>
-      </div>
-      <div class="repair-box" *ngIf="errors.length > 0">
-        <p>{{ i18n.t('wizardStep3RepairHint') }}</p>
-        <button type="button" class="copy-prompt-btn" (click)="copyRepairPrompt()">
-          {{ repairCopied ? i18n.t('copied') : i18n.t('wizardStep3RepairBtn') }}
-        </button>
-      </div>
-
-      <div class="actions-row">
-        <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
-        <button type="button" (click)="validate()" [disabled]="isWorking || !dslJson.trim()">
-          {{ state === 'validating' ? i18n.t('validating') : i18n.t('validate') }}
-        </button>
-        <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="!validationOk">
-          {{ i18n.t('wizardStep3Cta') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- ═══════════════ STEP 3B (edit/verify) ═══════════════ -->
-    <div class="step-card" *ngIf="currentStep === 'step3b' && editableForm">
-      <p class="step-badge">{{ i18n.t('wizardBadge3b') }}</p>
-      <h2>{{ i18n.t('wizardStep3bTitle') }}</h2>
-      <p class="step-desc">{{ i18n.t('wizardStep3bDesc') }}</p>
-
-      <label class="edit-checkbox shuffle-all" *ngIf="hasShuffleableQuestions()">
-        <input type="checkbox" [checked]="allShuffled()" (change)="setShuffleAll($any($event.target).checked)" name="shuffleAll" />
-        {{ i18n.t('wizardStep3bShuffleAll') }}
-      </label>
-
-      <div class="edit-page" *ngFor="let page of editableForm.pages; let pi = index">
-        <h3 class="edit-page-title" *ngIf="editableForm.pages.length > 1">{{ page.title }}</h3>
-
-        <div class="edit-question" *ngFor="let q of page.questions; let qi = index">
-          <div class="edit-question-head">
-            <span class="edit-question-num">{{ questionNumber(pi, qi) }}</span>
-            <div class="edit-question-actions">
-              <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, -1)" [disabled]="qi === 0" [attr.aria-label]="i18n.t('wizardStep3bMoveUp')">↑</button>
-              <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, 1)" [disabled]="qi === page.questions.length - 1" [attr.aria-label]="i18n.t('wizardStep3bMoveDown')">↓</button>
-              <button type="button" class="icon-btn icon-btn-danger" (click)="removeQuestion(pi, qi)" [attr.aria-label]="i18n.t('wizardStep3bRemoveQuestion')">✕</button>
-            </div>
+    @if (currentStep === 'step2') {
+      <div class="step-card">
+        <p class="step-badge">{{ i18n.t('wizardBadge2') }}</p>
+        <h2>{{ i18n.t('wizardStep2Title') }}</h2>
+        <p class="step-desc">{{ promptMode === 'extract' ? i18n.t('wizardStep2DescFile') : i18n.t('wizardStep2DescNew') }}</p>
+        <ol class="micro-steps">
+          <li class="micro-step"><span class="where where-here">{{ i18n.t('wizardWhereHere') }}</span>{{ i18n.t('wizardStep2Sub1') }}</li>
+          <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ promptMode === 'extract' ? i18n.t('wizardStep2Sub2File') : i18n.t('wizardStep2Sub2New') }}</li>
+          <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub3') }}</li>
+          <li class="micro-step"><span class="where where-ai">{{ i18n.t('wizardWhereAi') }}</span>{{ i18n.t('wizardStep2Sub4') }}</li>
+        </ol>
+        <p class="open-ai">{{ i18n.t('wizardOpenAi') }}
+          <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">ChatGPT</a> ·
+          <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer">Gemini</a> ·
+          <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Claude</a></p>
+          <button type="button" class="copy-prompt-btn" (click)="copyPrompt()">
+            {{ promptCopied ? i18n.t('copied') : i18n.t('copyPrompt') }}
+          </button>
+          <div class="actions-row">
+            <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
+            <button type="button" class="btn-primary step-cta-inline" (click)="goNext()">
+              {{ i18n.t('wizardStep2Cta') }}
+            </button>
           </div>
-
-          <input
-            type="text"
-            class="edit-input"
-            [(ngModel)]="q.title"
-            [name]="'qtitle-' + pi + '-' + qi"
-            [placeholder]="i18n.t('wizardStep3bQuestionTitle')"
-          />
-
-          <div class="edit-row">
-            <select class="edit-select" [(ngModel)]="q.type" [name]="'qtype-' + pi + '-' + qi" (ngModelChange)="onTypeChange(q)">
-              <option value="text">{{ i18n.t('qType_text') }}</option>
-              <option value="short_answer">{{ i18n.t('qType_short_answer') }}</option>
-              <option value="true_false">{{ i18n.t('qType_true_false') }}</option>
-              <option value="multiple_choice">{{ i18n.t('qType_multiple_choice') }}</option>
-              <option value="checkbox">{{ i18n.t('qType_checkbox') }}</option>
-              <option value="dropdown">{{ i18n.t('qType_dropdown') }}</option>
-            </select>
-            <label class="edit-checkbox">
-              <input type="checkbox" [(ngModel)]="q.required" [name]="'qreq-' + pi + '-' + qi" />
-              {{ i18n.t('wizardStep3bRequired') }}
+        </div>
+      }
+    
+      <!-- ═══════════════ STEP 3 ═══════════════ -->
+      @if (currentStep === 'step3') {
+        <div class="step-card">
+          <p class="step-badge">{{ i18n.t('wizardBadge3') }}</p>
+          <h2>{{ i18n.t('wizardStep3Title') }}</h2>
+          <p class="step-desc">{{ i18n.t('wizardStep3Desc') }}</p>
+          <textarea
+            [(ngModel)]="dslJson"
+            rows="7"
+            [placeholder]="i18n.t('wizardStep3Placeholder')"
+            [disabled]="isWorking"
+            (paste)="onPaste()"
+          ></textarea>
+          @if (validationOk) {
+            <div class="result result-valid">
+              <strong>✓ {{ i18n.t('wizardStep3Ok') }}</strong>
+            </div>
+          }
+          @if (errors.length > 0) {
+            <div class="result result-error">
+              <strong>{{ i18n.t('wizardStep3ErrHint') }}</strong>
+              <ul>
+                @for (e of errors; track e) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+            </div>
+          }
+          @if (serverError && !errors.length) {
+            <div class="result result-error">
+              <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
+            </div>
+          }
+          @if (warnings.length > 0) {
+            <div class="result result-warn">
+              <strong>{{ i18n.t('wizardStep3Fixed') }}</strong>
+              <ul>@for (w of warnings; track w) {
+                <li>{{ warningText(w) }}</li>
+              }</ul>
+            </div>
+          }
+          @if (errors.length > 0) {
+            <div class="repair-box">
+              <p>{{ i18n.t('wizardStep3RepairHint') }}</p>
+              <button type="button" class="copy-prompt-btn" (click)="copyRepairPrompt()">
+                {{ repairCopied ? i18n.t('copied') : i18n.t('wizardStep3RepairBtn') }}
+              </button>
+            </div>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
+            <button type="button" (click)="validate()" [disabled]="isWorking || !dslJson.trim()">
+              {{ state === 'validating' ? i18n.t('validating') : i18n.t('validate') }}
+            </button>
+            <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="!validationOk">
+              {{ i18n.t('wizardStep3Cta') }}
+            </button>
+          </div>
+        </div>
+      }
+    
+      <!-- ═══════════════ STEP 3B (edit/verify) ═══════════════ -->
+      @if (currentStep === 'step3b' && editableForm) {
+        <div class="step-card">
+          <p class="step-badge">{{ i18n.t('wizardBadge3b') }}</p>
+          <h2>{{ i18n.t('wizardStep3bTitle') }}</h2>
+          <p class="step-desc">{{ i18n.t('wizardStep3bDesc') }}</p>
+          @if (hasShuffleableQuestions()) {
+            <label class="edit-checkbox shuffle-all">
+              <input type="checkbox" [checked]="allShuffled()" (change)="setShuffleAll($any($event.target).checked)" name="shuffleAll" />
+              {{ i18n.t('wizardStep3bShuffleAll') }}
             </label>
-          </div>
-
-          <label class="edit-checkbox" *ngIf="hasOptions(q)">
-            <input type="checkbox" [(ngModel)]="q.shuffle" [name]="'qshuffle-' + pi + '-' + qi" />
-            {{ i18n.t('wizardStep3bShuffle') }}
-          </label>
-
-          <div class="edit-options" *ngIf="hasOptions(q)">
-            <div class="edit-option-row" *ngFor="let opt of q.options; let oi = index">
-              <input
-                type="text"
-                class="edit-input"
-                [ngModel]="opt"
-                (ngModelChange)="setOption(q, oi, $event)"
-                [name]="'qopt-' + pi + '-' + qi + '-' + oi"
-                [placeholder]="i18n.t('wizardStep3bOptionPlaceholder') + ' ' + (oi + 1)"
-              />
-              <button type="button" class="icon-btn icon-btn-danger" (click)="removeOption(q, oi)" [disabled]="(q.options?.length ?? 0) <= 1" [attr.aria-label]="i18n.t('wizardStep3bRemoveOption')">✕</button>
+          }
+          @for (page of editableForm.pages; track page; let pi = $index) {
+            <div class="edit-page">
+              @if (editableForm.pages.length > 1) {
+                <h3 class="edit-page-title">{{ page.title }}</h3>
+              }
+              @for (q of page.questions; track q; let qi = $index) {
+                <div class="edit-question">
+                  <div class="edit-question-head">
+                    <span class="edit-question-num">{{ questionNumber(pi, qi) }}</span>
+                    <div class="edit-question-actions">
+                      <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, -1)" [disabled]="qi === 0" [attr.aria-label]="i18n.t('wizardStep3bMoveUp')">↑</button>
+                      <button type="button" class="icon-btn" (click)="moveQuestion(pi, qi, 1)" [disabled]="qi === page.questions.length - 1" [attr.aria-label]="i18n.t('wizardStep3bMoveDown')">↓</button>
+                      <button type="button" class="icon-btn icon-btn-danger" (click)="removeQuestion(pi, qi)" [attr.aria-label]="i18n.t('wizardStep3bRemoveQuestion')">✕</button>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    class="edit-input"
+                    [(ngModel)]="q.title"
+                    [name]="'qtitle-' + pi + '-' + qi"
+                    [placeholder]="i18n.t('wizardStep3bQuestionTitle')"
+                    />
+                  <div class="edit-row">
+                    <select class="edit-select" [(ngModel)]="q.type" [name]="'qtype-' + pi + '-' + qi" (ngModelChange)="onTypeChange(q)">
+                      <option value="text">{{ i18n.t('qType_text') }}</option>
+                      <option value="short_answer">{{ i18n.t('qType_short_answer') }}</option>
+                      <option value="true_false">{{ i18n.t('qType_true_false') }}</option>
+                      <option value="multiple_choice">{{ i18n.t('qType_multiple_choice') }}</option>
+                      <option value="checkbox">{{ i18n.t('qType_checkbox') }}</option>
+                      <option value="dropdown">{{ i18n.t('qType_dropdown') }}</option>
+                    </select>
+                    <label class="edit-checkbox">
+                      <input type="checkbox" [(ngModel)]="q.required" [name]="'qreq-' + pi + '-' + qi" />
+                      {{ i18n.t('wizardStep3bRequired') }}
+                    </label>
+                  </div>
+                  @if (hasOptions(q)) {
+                    <label class="edit-checkbox">
+                      <input type="checkbox" [(ngModel)]="q.shuffle" [name]="'qshuffle-' + pi + '-' + qi" />
+                      {{ i18n.t('wizardStep3bShuffle') }}
+                    </label>
+                  }
+                  @if (hasOptions(q)) {
+                    <div class="edit-options">
+                      @for (opt of q.options; track opt; let oi = $index) {
+                        <div class="edit-option-row">
+                          <input
+                            type="text"
+                            class="edit-input"
+                            [ngModel]="opt"
+                            (ngModelChange)="setOption(q, oi, $event)"
+                            [name]="'qopt-' + pi + '-' + qi + '-' + oi"
+                            [placeholder]="i18n.t('wizardStep3bOptionPlaceholder') + ' ' + (oi + 1)"
+                            />
+                          <button type="button" class="icon-btn icon-btn-danger" (click)="removeOption(q, oi)" [disabled]="(q.options?.length ?? 0) <= 1" [attr.aria-label]="i18n.t('wizardStep3bRemoveOption')">✕</button>
+                        </div>
+                      }
+                      <button type="button" class="edit-add-link" (click)="addOption(q)">+ {{ i18n.t('wizardStep3bAddOption') }}</button>
+                    </div>
+                  }
+                  @if (editableForm.mode === 'quiz' && hasOptions(q)) {
+                    <div class="edit-row">
+                      <input type="text" class="edit-input" [(ngModel)]="q.correctAnswer" [name]="'qcorrect-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bCorrectAnswer')" />
+                      <input type="number" class="edit-input edit-input-score" [(ngModel)]="q.score" [name]="'qscore-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bScore')" min="0" />
+                    </div>
+                  }
+                  <div class="edit-media">
+                    @if (q.media) {
+                      <input type="url" class="edit-input" [(ngModel)]="q.media.url" [name]="'qmedia-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bImageUrl')" />
+                      <button type="button" class="edit-add-link edit-remove-link" (click)="removeImage(q)">{{ i18n.t('wizardStep3bRemoveImage') }}</button>
+                    } @else {
+                      <button type="button" class="edit-add-link" (click)="addImage(q)">+ {{ i18n.t('wizardStep3bAddImage') }}</button>
+                    }
+                  </div>
+                  @if (q.metadata?.fidelity === 'interpreted') {
+                    <div class="image-hint">🔍 {{ i18n.t('fidelityInterpretedBadge') }}</div>
+                  }
+                  @if (q.metadata?.fidelity === 'answer_inferred' && editableForm.mode === 'quiz') {
+                    <div class="image-hint">🤖 {{ i18n.t('fidelityInferredBadge') }}</div>
+                  }
+                  @if (q.metadata?.imageHint && !q.media) {
+                    <div class="image-hint">📷 {{ i18n.t('wizardStep3bImageHint') }}: {{ q.metadata?.imageHint }}</div>
+                  }
+                </div>
+              }
+              <button type="button" class="edit-add-question-btn" (click)="addQuestion(pi)">+ {{ i18n.t('wizardStep3bAddQuestion') }}</button>
             </div>
-            <button type="button" class="edit-add-link" (click)="addOption(q)">+ {{ i18n.t('wizardStep3bAddOption') }}</button>
-          </div>
-
-          <div class="edit-row" *ngIf="editableForm.mode === 'quiz' && hasOptions(q)">
-            <input type="text" class="edit-input" [(ngModel)]="q.correctAnswer" [name]="'qcorrect-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bCorrectAnswer')" />
-            <input type="number" class="edit-input edit-input-score" [(ngModel)]="q.score" [name]="'qscore-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bScore')" min="0" />
-          </div>
-
-          <div class="edit-media">
-            <ng-container *ngIf="q.media; else noMedia">
-              <input type="url" class="edit-input" [(ngModel)]="q.media.url" [name]="'qmedia-' + pi + '-' + qi" [placeholder]="i18n.t('wizardStep3bImageUrl')" />
-              <button type="button" class="edit-add-link edit-remove-link" (click)="removeImage(q)">{{ i18n.t('wizardStep3bRemoveImage') }}</button>
-            </ng-container>
-            <ng-template #noMedia>
-              <button type="button" class="edit-add-link" (click)="addImage(q)">+ {{ i18n.t('wizardStep3bAddImage') }}</button>
-            </ng-template>
-          </div>
-
-          <div class="image-hint" *ngIf="q.metadata?.fidelity === 'interpreted'">🔍 {{ i18n.t('fidelityInterpretedBadge') }}</div>
-          <div class="image-hint" *ngIf="q.metadata?.fidelity === 'answer_inferred' && editableForm.mode === 'quiz'">🤖 {{ i18n.t('fidelityInferredBadge') }}</div>
-          <div class="image-hint" *ngIf="q.metadata?.imageHint && !q.media">📷 {{ i18n.t('wizardStep3bImageHint') }}: {{ q.metadata?.imageHint }}</div>
-        </div>
-
-        <button type="button" class="edit-add-question-btn" (click)="addQuestion(pi)">+ {{ i18n.t('wizardStep3bAddQuestion') }}</button>
-      </div>
-
-      <div class="result result-error" *ngIf="editErrors().length > 0">
-        <strong>{{ i18n.t('wizardStep3bValidationHint') }}</strong>
-        <ul>
-          <li *ngFor="let e of editErrors()">{{ e }}</li>
-        </ul>
-      </div>
-
-      <div class="actions-row">
-        <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
-        <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="editErrors().length > 0">
-          {{ i18n.t('wizardStep3bCta') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- ═══════════════ STEP 4 ═══════════════ -->
-    <div class="step-card" *ngIf="currentStep === 'step4'">
-      <p class="step-badge">{{ i18n.t('wizardBadge4') }}</p>
-      <h2>{{ i18n.t('wizardStep4Title') }}</h2>
-      <p class="step-desc">{{ i18n.t('wizardStep4Desc') }}</p>
-
-      <div class="permissions-list">
-        <div class="perm-item">
-          <span class="perm-icon">📝</span>
-          <div>
-            <strong>{{ i18n.t('perm1Title') }}</strong>
-            <p>{{ i18n.t('perm1Desc') }}</p>
+          }
+          @if (editErrors().length > 0) {
+            <div class="result result-error">
+              <strong>{{ i18n.t('wizardStep3bValidationHint') }}</strong>
+              <ul>
+                @for (e of editErrors(); track e) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+            </div>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
+            <button type="button" class="btn-primary step-cta-inline" (click)="goNext()" [disabled]="editErrors().length > 0">
+              {{ i18n.t('wizardStep3bCta') }}
+            </button>
           </div>
         </div>
-        <div class="perm-item">
-          <span class="perm-icon">👁️</span>
-          <div>
-            <strong>{{ i18n.t('perm2Title') }}</strong>
-            <p>{{ i18n.t('perm2Desc') }}</p>
+      }
+    
+      <!-- ═══════════════ STEP 4 ═══════════════ -->
+      @if (currentStep === 'step4') {
+        <div class="step-card">
+          <p class="step-badge">{{ i18n.t('wizardBadge4') }}</p>
+          <h2>{{ i18n.t('wizardStep4Title') }}</h2>
+          <p class="step-desc">{{ i18n.t('wizardStep4Desc') }}</p>
+          <div class="permissions-list">
+            <div class="perm-item">
+              <span class="perm-icon">📝</span>
+              <div>
+                <strong>{{ i18n.t('perm1Title') }}</strong>
+                <p>{{ i18n.t('perm1Desc') }}</p>
+              </div>
+            </div>
+            <div class="perm-item">
+              <span class="perm-icon">👁️</span>
+              <div>
+                <strong>{{ i18n.t('perm2Title') }}</strong>
+                <p>{{ i18n.t('perm2Desc') }}</p>
+              </div>
+            </div>
+          </div>
+          <details class="consent-details">
+            <summary>⚠️ {{ i18n.t('wizardStep4WarnTitle') }}</summary>
+            <div class="google-consent-mockup">
+              <div class="consent-header">
+                <span class="consent-g">G</span>
+                <span class="consent-domain">accounts.google.com</span>
+              </div>
+              <div class="consent-warning-box">
+                <span>⚠️</span>
+                <p>{{ i18n.t('consentWarningText') }}</p>
+              </div>
+              <div class="consent-instruction">
+                <p>{{ i18n.t('consentInstructionIntro') }}</p>
+                <ol>
+                  <li>{{ i18n.t('consentStep1') }} <kbd>{{ i18n.t('consentBtn1') }}</kbd></li>
+                  <li>{{ i18n.t('consentStep2') }} <kbd>{{ i18n.t('consentBtn2') }}</kbd></li>
+                </ol>
+                <p class="consent-why">{{ i18n.t('consentWhy') }}</p>
+              </div>
+            </div>
+          </details>
+          @if (imageHintQuestions().length > 0) {
+            <label class="skip-image-notes">
+              <input type="checkbox" [(ngModel)]="skipImageNotes" name="skipImageNotes" />
+              <span>{{ i18n.t('skipImageNotes') }}</span>
+            </label>
+          }
+          <p class="google-status" [class.connected]="googleConnected">
+            {{ googleConnected ? '✓ ' + i18n.t('wizardStep4Connected') : i18n.t('wizardStep4WillRedirect') }}
+          </p>
+          @if (serverError) {
+            <div class="result result-error">
+              <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
+            </div>
+          }
+          <div class="actions-row">
+            <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
+            <button type="button" class="btn-primary step-cta-inline" [class.btn-connect]="!googleConnected" (click)="create()" [disabled]="isWorking">
+              {{ state === 'creating' ? i18n.t('creating') : googleConnected ? i18n.t('wizardStep4CtaCreate') : i18n.t('wizardStep4CtaConnect') }}
+            </button>
           </div>
         </div>
-      </div>
-
-      <details class="consent-details">
-        <summary>⚠️ {{ i18n.t('wizardStep4WarnTitle') }}</summary>
-        <div class="google-consent-mockup">
-          <div class="consent-header">
-            <span class="consent-g">G</span>
-            <span class="consent-domain">accounts.google.com</span>
-          </div>
-          <div class="consent-warning-box">
-            <span>⚠️</span>
-            <p>{{ i18n.t('consentWarningText') }}</p>
-          </div>
-          <div class="consent-instruction">
-            <p>{{ i18n.t('consentInstructionIntro') }}</p>
-            <ol>
-              <li>{{ i18n.t('consentStep1') }} <kbd>{{ i18n.t('consentBtn1') }}</kbd></li>
-              <li>{{ i18n.t('consentStep2') }} <kbd>{{ i18n.t('consentBtn2') }}</kbd></li>
-            </ol>
-            <p class="consent-why">{{ i18n.t('consentWhy') }}</p>
-          </div>
+      }
+    
+      <!-- ═══════════════ DONE ═══════════════ -->
+      @if (currentStep === 'done') {
+        <div class="step-card done-card">
+          <span class="done-icon" aria-hidden="true">🎉</span>
+          <h2>{{ i18n.t('wizardDone') }}</h2>
+          @if (editableForm?.mode === 'quiz') {
+            <div class="result result-warn answers-warning" role="alert">
+              <strong>⚠️ {{ i18n.t('doneAnswersWarnTitle') }}</strong>
+              <p>{{ i18n.t('doneAnswersWarnBody') }}</p>
+              @if (fidelityNumbers('answer_inferred').length > 0) {
+                <p>🤖 {{ i18n.t('doneFidelityInferred') }}: <strong>{{ fidelityNumbers('answer_inferred').join(', ') }}</strong></p>
+              }
+              @if (fidelityNumbers('interpreted').length > 0) {
+                <p>🔍 {{ i18n.t('doneFidelityInterpreted') }}: <strong>{{ fidelityNumbers('interpreted').join(', ') }}</strong></p>
+              }
+            </div>
+          }
+          <a [href]="formUrl" target="_blank" rel="noopener noreferrer" class="open-form-btn btn-primary">
+            {{ i18n.t('openForm') }}
+          </a>
+          @if (imageHintQuestions().length > 0) {
+            <div class="image-todo">
+              <h3>{{ i18n.t('doneImagesTitle') }}</h3>
+              <p>{{ i18n.t('doneImagesDesc') }}</p>
+              <ul>@for (h of imageHintQuestions(); track h) {
+                <li><strong>{{ h.n }}.</strong> {{ h.title }} — {{ h.hint }}</li>
+              }</ul>
+              <a [href]="editUrl" target="_blank" rel="noopener noreferrer" class="btn-ghost">{{ i18n.t('doneEditForm') }}</a>
+            </div>
+          }
+          <button type="button" class="btn-ghost reset-btn" (click)="resetWizard()">
+            {{ i18n.t('wizardReset') }}
+          </button>
         </div>
-      </details>
-
-      <label class="skip-image-notes" *ngIf="imageHintQuestions().length > 0">
-        <input type="checkbox" [(ngModel)]="skipImageNotes" name="skipImageNotes" />
-        <span>{{ i18n.t('skipImageNotes') }}</span>
-      </label>
-
-      <p class="google-status" [class.connected]="googleConnected">
-        {{ googleConnected ? '✓ ' + i18n.t('wizardStep4Connected') : i18n.t('wizardStep4WillRedirect') }}
-      </p>
-
-      <div class="result result-error" *ngIf="serverError">
-        <strong>{{ i18n.t('errorPrefix') }}</strong> {{ serverError }}
-      </div>
-
-      <div class="actions-row">
-        <button type="button" class="btn-ghost" (click)="goBack()">{{ i18n.t('wizardBack') }}</button>
-        <button type="button" class="btn-primary step-cta-inline" [class.btn-connect]="!googleConnected" (click)="create()" [disabled]="isWorking">
-          {{ state === 'creating' ? i18n.t('creating') : googleConnected ? i18n.t('wizardStep4CtaCreate') : i18n.t('wizardStep4CtaConnect') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- ═══════════════ DONE ═══════════════ -->
-    <div class="step-card done-card" *ngIf="currentStep === 'done'">
-      <span class="done-icon" aria-hidden="true">🎉</span>
-      <h2>{{ i18n.t('wizardDone') }}</h2>
-      <div class="result result-warn answers-warning" role="alert" *ngIf="editableForm?.mode === 'quiz'">
-        <strong>⚠️ {{ i18n.t('doneAnswersWarnTitle') }}</strong>
-        <p>{{ i18n.t('doneAnswersWarnBody') }}</p>
-        <p *ngIf="fidelityNumbers('answer_inferred').length > 0">🤖 {{ i18n.t('doneFidelityInferred') }}: <strong>{{ fidelityNumbers('answer_inferred').join(', ') }}</strong></p>
-        <p *ngIf="fidelityNumbers('interpreted').length > 0">🔍 {{ i18n.t('doneFidelityInterpreted') }}: <strong>{{ fidelityNumbers('interpreted').join(', ') }}</strong></p>
-      </div>
-      <a [href]="formUrl" target="_blank" rel="noopener noreferrer" class="open-form-btn btn-primary">
-        {{ i18n.t('openForm') }}
-      </a>
-      <div class="image-todo" *ngIf="imageHintQuestions().length > 0">
-        <h3>{{ i18n.t('doneImagesTitle') }}</h3>
-        <p>{{ i18n.t('doneImagesDesc') }}</p>
-        <ul><li *ngFor="let h of imageHintQuestions()"><strong>{{ h.n }}.</strong> {{ h.title }} — {{ h.hint }}</li></ul>
-        <a [href]="editUrl" target="_blank" rel="noopener noreferrer" class="btn-ghost">{{ i18n.t('doneEditForm') }}</a>
-      </div>
-      <button type="button" class="btn-ghost reset-btn" (click)="resetWizard()">
-        {{ i18n.t('wizardReset') }}
-      </button>
-    </div>
-  `,
+      }
+    `,
   styles: [`
     :host {
       display: block;
