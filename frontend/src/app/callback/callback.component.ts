@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { saveToken } from '../services/google-session';
 
 @Component({
   selector: 'app-callback',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div style="display:grid;place-items:center;min-height:100vh;font-family:sans-serif;">
       <p>{{ message }}</p>

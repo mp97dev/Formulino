@@ -5,4 +5,5 @@ module.exports = {
   Input: noop,
   Output: noop,
   OnInit: class {},
+  ChangeDetectionStrategy: { Eager: 'Eager', OnPush: 'OnPush' },
 };

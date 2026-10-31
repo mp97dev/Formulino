@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY . .
 
 RUN npm run build -w backend && npm run build -w frontend
 
-FROM node:20-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends nginx gettext-base curl \
@@ -26,9 +26,13 @@ COPY --from=build /app/dsl /app/dsl
 COPY --from=build /app/backend/dist /app/backend/dist
 COPY --from=build /app/frontend/dist/frontend/browser /srv/frontend
 
-# Install only production dependencies for the backend
-COPY backend/package*.json /app/backend/
-RUN npm install --omit=dev --legacy-peer-deps --prefix /app/backend
+# Install only the backend's production dependencies, pinned by the root
+# lockfile (npm ci needs every workspace manifest to validate it)
+COPY package.json package-lock.json /app/
+COPY backend/package.json /app/backend/
+COPY frontend/package.json /app/frontend/
+COPY cli/package.json /app/cli/
+RUN npm ci --omit=dev -w backend && npm cache clean --force
 
 COPY deploy/nginx/default.conf.template /app/deploy/nginx/default.conf.template
 COPY deploy/start.sh /app/deploy/start.sh

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { I18nService } from '../services/i18n.service';
@@ -309,6 +309,7 @@ import { I18nService } from '../services/i18n.service';
       <a routerLink="/" class="back">{{ i18n.lang() === 'it' ? "← Torna all'app" : '← Back to app' }}</a>
     </main>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .privacy {
       max-width: 720px;

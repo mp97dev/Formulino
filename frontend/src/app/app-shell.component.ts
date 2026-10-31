@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { I18nService } from './services/i18n.service';
 import { StatsService } from './services/stats.service';
@@ -35,6 +35,7 @@ import { environment } from '../environments/environment';
       <span class="footer-version">v{{ version }}</span>
     </footer>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .app-header {
       display: flex;

@@ -307,8 +307,8 @@ Phase 1 baseline is now scaffolded with:
 
 ### Prerequisites
 
-- Node.js 20 LTS
-- npm 10+
+- Node.js 24 LTS (24.15 or newer, see `.nvmrc`)
+- npm 11+
 
 ### Setup
 

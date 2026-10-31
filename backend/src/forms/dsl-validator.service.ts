@@ -18,7 +18,6 @@ export class DslValidatorService {
     addFormats(this.ajv);
     // Load schema at runtime so TypeScript rootDir constraints don't apply
     const schemaPath = resolve(__dirname, '../../../dsl/schema/form.v1.schema.json');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const schema = require(schemaPath) as object;
     this.validate = this.ajv.compile(schema);
   }
