@@ -5,9 +5,19 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint-and-test:
+  test:
+    name: Lint, test and build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,14 +26,77 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
         run: npm run lint
 
       - name: Test
         run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for the secret scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Full report of runtime dependencies in the job summary; only critical
+      # vulnerabilities fail the build so a pending framework upgrade does not
+      # block every release.
+      - name: npm audit (runtime dependencies)
+        run: |
+          {
+            echo '## npm audit (runtime dependencies)'
+            echo '```'
+            npm audit --omit=dev || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          npm audit --omit=dev --audit-level=critical
+
+      - name: Secret scan (gitleaks)
+        env:
+          GITLEAKS_VERSION: 8.21.2
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks detect --source . --redact --verbose
+
+  release:
+    name: Create release
+    needs: [test, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The pre-commit hook bumps VERSION on every commit; a push whose
+      # version is already tagged is skipped instead of failing.
+      - name: Create GitHub release for VERSION
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          if gh release view "$version" > /dev/null 2>&1; then
+            echo "Release $version already exists, skipping."
+            exit 0
+          fi
+          gh release create "$version" --target "$GITHUB_SHA" --title "$version" --generate-notes
