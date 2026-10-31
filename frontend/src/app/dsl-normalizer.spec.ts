@@ -207,6 +207,21 @@ describe('normalizeDsl precise warnings', () => {
     expect(r.warnings).toContainEqual({ code: 'options_removed', n: 1, from: 'short_answer' });
   });
 
+  it('replaces newlines in title, options and correctAnswer with spaces and warns', () => {
+    const r = ok(q({
+      type: 'multiple_choice',
+      title: 'Riga uno.\nRiga due?',
+      options: ['A\n48 + 12 = 60', 'B\n48 - 12 = 36'],
+      correctAnswer: 'A\n48 + 12 = 60',
+    }));
+    const question = r.form.pages[0].questions[0];
+    expect(question.title).toBe('Riga uno. Riga due?');
+    expect(question.options).toEqual(['A 48 + 12 = 60', 'B 48 - 12 = 36']);
+    expect(question.correctAnswer).toBe('A 48 + 12 = 60');
+    expect(r.warnings).toContainEqual({ code: 'newlines_removed', n: 1 });
+    expect(r.warnings.some((w) => w.code === 'answer_resolved')).toBe(false);
+  });
+
   it('resolves correctAnswer given as a letter or with different case', () => {
     const letter = ok(q({ type: 'multiple_choice', options: ['Roma', 'Parigi'], correctAnswer: 'B' }));
     expect(letter.form.pages[0].questions[0].correctAnswer).toBe('Parigi');

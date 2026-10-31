@@ -1280,6 +1280,7 @@ export class AppComponent implements OnInit {
       case 'answer_not_in_options': return this.i18n.tp('normWarnAnswerNotInOptions', params);
       case 'mode_set_quiz': return this.i18n.tp('normWarnModeQuiz', params);
       case 'answers_missing': return this.i18n.tp('normWarnAnswersMissing', params);
+      case 'newlines_removed': return this.i18n.tp('normWarnNewlinesRemoved', params);
     }
   }
 

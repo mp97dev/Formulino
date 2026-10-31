@@ -30,6 +30,9 @@ export class DslValidatorService {
     }
     const errors = (this.validate.errors ?? []).map((e) => {
       const path = e.instancePath || '(root)';
+      if (e.keyword === 'pattern' && e.schemaPath.startsWith('#/definitions/singleLine')) {
+        return `${path}: must not contain newlines`;
+      }
       return `${path}: ${e.message}`;
     });
     return { valid: false, errors };

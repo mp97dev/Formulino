@@ -5,9 +5,16 @@
   "type": "object",
   "required": ["id", "title", "description", "mode", "settings", "pages"],
   "additionalProperties": false,
+  "definitions": {
+    "singleLine": {
+      "$comment": "Google Forms rejects newlines in titles and option values (\"Displayed text cannot contain newlines\")",
+      "type": "string",
+      "pattern": "^[^\\r\\n]*$"
+    }
+  },
   "properties": {
     "id": { "type": "string", "minLength": 1 },
-    "title": { "type": "string", "minLength": 1 },
+    "title": { "$ref": "#/definitions/singleLine", "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "mode": { "type": "string", "enum": ["form", "quiz"] },
     "settings": {
@@ -29,7 +36,7 @@
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string", "minLength": 1 },
-          "title": { "type": "string", "minLength": 1 },
+          "title": { "$ref": "#/definitions/singleLine", "type": "string", "minLength": 1 },
           "questions": {
             "type": "array",
             "items": {
@@ -42,14 +49,14 @@
                   "type": "string",
                   "enum": ["text", "multiple_choice", "checkbox", "dropdown", "true_false", "short_answer"]
                 },
-                "title": { "type": "string", "minLength": 1 },
+                "title": { "$ref": "#/definitions/singleLine", "type": "string", "minLength": 1 },
                 "required": { "type": "boolean" },
                 "options": {
                   "type": "array",
-                  "items": { "type": "string" },
+                  "items": { "$ref": "#/definitions/singleLine" },
                   "minItems": 1
                 },
-                "correctAnswer": { "type": "string" },
+                "correctAnswer": { "$ref": "#/definitions/singleLine" },
                 "shuffle": { "type": "boolean" },
                 "score": { "type": "number", "minimum": 0 },
                 "media": {

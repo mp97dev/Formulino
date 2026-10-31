@@ -43,6 +43,7 @@ RULES
 - "correctAnswer" must be copied character by character from one of the "options" (never a letter like "B", never a number, never a paraphrase).
 - Use a single page unless the content has clearly separate sections.
 - Write all texts in the language of the content (Italian if unsure). Plain text only: no Markdown, no LaTeX (write x², √, ½ with Unicode characters).
+- Every "title", option and "correctAnswer" must be ONE line: never write \\n or line breaks inside them (Google Forms rejects them). Join lines with a space, or with " ; " when an option lists several steps.
 EXAMPLE OF A VALID REPLY (a quiz with two questions; your content will be different)
 \`\`\`json
 {

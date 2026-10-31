@@ -36,6 +36,27 @@ describe('DslValidatorService', () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
+  it('rejects newlines in titles, options and correctAnswer', () => {
+    const result = service.validateForm({
+      ...validForm,
+      pages: [{
+        id: 'p1',
+        title: 'Page\n1',
+        questions: [{
+          id: 'q1', type: 'multiple_choice', title: 'A\nB', required: true,
+          options: ['x\ny', 'z'], correctAnswer: 'x\ny',
+        }],
+      }],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      '/pages/0/title: must not contain newlines',
+      '/pages/0/questions/0/title: must not contain newlines',
+      '/pages/0/questions/0/options/0: must not contain newlines',
+      '/pages/0/questions/0/correctAnswer: must not contain newlines',
+    ]);
+  });
+
   it('rejects invalid mode', () => {
     const result = service.validateForm({ ...validForm, mode: 'invalid' });
     expect(result.valid).toBe(false);

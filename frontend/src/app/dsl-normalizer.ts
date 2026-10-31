@@ -9,7 +9,8 @@ export type WarningCode =
   | 'answer_resolved'
   | 'answer_not_in_options'
   | 'mode_set_quiz'
-  | 'answers_missing';
+  | 'answers_missing'
+  | 'newlines_removed';
 
 export interface NormalizeWarning {
   code: WarningCode;
@@ -85,6 +86,11 @@ function str(v: unknown): string | undefined {
   if (typeof v === 'string') return v.trim() || undefined;
   if (typeof v === 'number') return String(v);
   return undefined;
+}
+
+// Google Forms rejects newlines in titles and option values, so they become spaces.
+function oneLine(v: string): string {
+  return v.replace(/\s*[\r\n]+\s*/g, ' ');
 }
 
 function bool(v: unknown, fallback: boolean): boolean {
@@ -209,15 +215,26 @@ function normalizeQuestion(
   if (!isRecord(rawInput)) return null;
   reportUnknownKeys(rawInput, QUESTION_KEYS, true, { scope: 'question', n }, warnings);
   const raw = applyAliases(rawInput);
-  const title = str(raw['title']);
-  if (!title) {
+  const rawTitle = str(raw['title']);
+  if (!rawTitle) {
     warnings.push({ code: 'empty_questions_removed', n });
     return null;
   }
+  const title = oneLine(rawTitle);
 
-  const options = Array.isArray(raw['options'])
+  const rawOptions = Array.isArray(raw['options'])
     ? raw['options'].map(str).filter((o): o is string => !!o)
     : [];
+  const options = rawOptions.map(oneLine);
+  const rawCorrectAnswer = str(raw['correctAnswer']);
+  const correctAnswer = rawCorrectAnswer && oneLine(rawCorrectAnswer);
+  if (
+    title !== rawTitle ||
+    options.some((o, i) => o !== rawOptions[i]) ||
+    correctAnswer !== rawCorrectAnswer
+  ) {
+    warnings.push({ code: 'newlines_removed', n });
+  }
 
   const rawType = typeof raw['type'] === 'string' ? raw['type'] : '';
   const typeKey = rawType.trim().toLowerCase().replace(/[\s/-]+/g, '_');
@@ -241,7 +258,6 @@ function normalizeQuestion(
   // Shuffling answers is the default for choice questions; the teacher can switch it off in the editor.
   if (type === 'multiple_choice' || type === 'checkbox' || type === 'dropdown') question.shuffle = true;
 
-  const correctAnswer = str(raw['correctAnswer']);
   if (correctAnswer) {
     if (question.options) {
       const resolved = resolveAnswer(correctAnswer, question.options);
@@ -291,7 +307,8 @@ export function normalizeDsl(raw: string): NormalizeResult {
 
   const warnings: NormalizeWarning[] = [];
   reportUnknownKeys(parsed, FORM_KEYS, false, { scope: 'form' }, warnings);
-  const title = str(parsed['title']) ?? 'Nuovo form';
+  const parsedTitle = str(parsed['title']);
+  const title = parsedTitle ? oneLine(parsedTitle) : 'Nuovo form';
   let counter = 0;
 
   const rawPages: unknown[] = Array.isArray(parsed['pages'])
@@ -304,7 +321,7 @@ export function normalizeDsl(raw: string): NormalizeResult {
     reportUnknownKeys(p, PAGE_KEYS, false, { scope: 'page', n: i + 1 }, warnings);
     return {
       id: `p${i + 1}`,
-      title: str(p['title']) ?? (i === 0 ? title : `Sezione ${i + 1}`),
+      title: oneLine(str(p['title']) ?? (i === 0 ? title : `Sezione ${i + 1}`)),
       questions: (Array.isArray(p['questions']) ? p['questions'] : [])
         .map((q) => {
           counter += 1;
