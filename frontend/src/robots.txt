@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://formulino.ginkgo3d.it/sitemap.xml
+Sitemap: https://formulino.michelepasetto.it/sitemap.xml

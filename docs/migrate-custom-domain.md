@@ -1,6 +1,6 @@
-# Migration Guide: formulino.ginkgo3d.it → formulino.michelepasetto.it
+# Migration Guide: formulino.michelepasetto.it → formulino.michelepasetto.it
 
-This guide migrates Formulino from `formulino.ginkgo3d.it` to the new custom
+This guide migrates Formulino from `formulino.michelepasetto.it` to the new custom
 domain `formulino.michelepasetto.it`.
 
 DNS for `michelepasetto.it` is hosted on **Cloudflare**; the domain itself is
@@ -17,10 +17,10 @@ variable is touched.
 
 | Setting | Before | After |
 |---|---|---|
-| Public URL | `https://formulino.ginkgo3d.it` | `https://formulino.michelepasetto.it` |
-| `GOOGLE_REDIRECT_URI` | `https://formulino.ginkgo3d.it/api/auth/google/callback` | `https://formulino.michelepasetto.it/api/auth/google/callback` |
-| `FRONTEND_URL` | `https://formulino.ginkgo3d.it` | `https://formulino.michelepasetto.it` |
-| `CORS_ORIGIN` | `https://formulino.ginkgo3d.it` | `https://formulino.michelepasetto.it` |
+| Public URL | `https://formulino.michelepasetto.it` | `https://formulino.michelepasetto.it` |
+| `GOOGLE_REDIRECT_URI` | `https://formulino.michelepasetto.it/api/auth/google/callback` | `https://formulino.michelepasetto.it/api/auth/google/callback` |
+| `FRONTEND_URL` | `https://formulino.michelepasetto.it` | `https://formulino.michelepasetto.it` |
+| `CORS_ORIGIN` | `https://formulino.michelepasetto.it` | `https://formulino.michelepasetto.it` |
 
 Nothing in the codebase changes — all configuration lives in Railway environment
 variables and Google Cloud Console. (The SEO-facing strings — canonical URLs,
@@ -38,7 +38,7 @@ were already updated to `formulino.michelepasetto.it` in this migration.)
 5. Railway displays a **CNAME target** — a string like `<hash>.up.railway.app`.
    Copy it; you need it in the next step.
 
-> Do **not** remove the old `formulino.ginkgo3d.it` domain from Railway or
+> Do **not** remove the old `formulino.michelepasetto.it` domain from Railway or
 > Google Cloud yet — keep both active during the transition so existing
 > sessions and bookmarks are not broken.
 
@@ -88,7 +88,7 @@ differently and must not be confused.
 Go to **APIs & Services → OAuth consent screen → Edit App → Authorized domains**.
 
 This field only accepts the **top private domain** — no subdomain prefix, no
-`https://`, no path. Add (do not remove `ginkgo3d.it` yet):
+`https://`, no path. Add (do not remove `michelepasetto.it` yet):
 
 ```
 michelepasetto.it
@@ -108,14 +108,14 @@ These fields accept full URLs including subdomains.
 
 ```
 https://formulino.michelepasetto.it
-https://formulino.ginkgo3d.it
+https://formulino.michelepasetto.it
 ```
 
 **Authorized Redirect URIs** — add the new callback, keep the old one:
 
 ```
 https://formulino.michelepasetto.it/api/auth/google/callback
-https://formulino.ginkgo3d.it/api/auth/google/callback
+https://formulino.michelepasetto.it/api/auth/google/callback
 ```
 
 Click **Save**. Google propagates the change within seconds.
@@ -171,21 +171,21 @@ Once you are confident the new domain is stable:
 
 Remove the old entries:
 
-- Authorized domains: delete `ginkgo3d.it` (only if nothing else on that domain
+- Authorized domains: delete `michelepasetto.it` (only if nothing else on that domain
   needs it)
-- Authorized JavaScript Origins: delete `https://formulino.ginkgo3d.it`
-- Authorized Redirect URIs: delete `https://formulino.ginkgo3d.it/api/auth/google/callback`
+- Authorized JavaScript Origins: delete `https://formulino.michelepasetto.it`
+- Authorized Redirect URIs: delete `https://formulino.michelepasetto.it/api/auth/google/callback`
 
 ### Railway
 
-Go to **Settings → Networking** and delete the old `formulino.ginkgo3d.it`
+Go to **Settings → Networking** and delete the old `formulino.michelepasetto.it`
 custom domain. This prevents users from bypassing the new domain and hitting
 the old one directly.
 
 ### Cloudflare / DNS
 
-Remove or repoint the old `formulino.ginkgo3d.it` DNS record (in whichever
-provider hosts the `ginkgo3d.it` zone) once you've confirmed no traffic is
+Remove or repoint the old `formulino.michelepasetto.it` DNS record (in whichever
+provider hosts the `michelepasetto.it` zone) once you've confirmed no traffic is
 still landing on it.
 
 ### SEO
